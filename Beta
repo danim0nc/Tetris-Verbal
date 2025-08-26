@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tetris Verbal</title>
+  <style>
+    /* ======= Pantalla de inicio ======= */
+    #start-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    #start-screen h1 { font-size: 3rem; margin: .5rem; }
+    #start-screen p  { margin: .2rem 0 1.5rem; }
+    #start-screen label { margin: .5rem; font-size: 1.1rem; }
+    #start-screen select, #start-screen input { margin-left: .5rem; font-size: 1rem; }
+    #start-screen button {
+      margin-top: 1.5rem;
+      padding: .6rem 1.2rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    #custom-options { display: none; margin-top: 1rem; }
+
+    #level-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.80);
+      color: #fff;
+      display: none;                /* se muestra con JS */
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      font-weight: bold;
+      z-index: 90;                  /* debajo de #start-screen (100) */
+    }
+
+    #end-screen {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      display: none;                  /* se muestra con JS */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      z-index: 95;                    /* entre start‑screen (100) y level‑screen (90) */
+      text-align: center;
+    }
+   
+    #end-screen table {
+      border-collapse: collapse;
+      margin: 0 auto;
+    }
+    #end-screen th, #end-screen td {
+      border: 1px solid #fff;
+      padding: .4rem .8rem;
+    }
+    #btn-restart2 {
+      padding: .6rem 1.2rem;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .end-actions { display: flex; gap: .8rem; justify-content: center; }
+    #btn-mainmenu { padding: .6rem 1.2rem; font-size: 1.1rem; cursor: pointer; }
+
+    /* ======= Layout del juego ======= */
+    body {
+      margin: 0; padding: 0;
+      font-family: sans-serif;
+      background: #f9f9f9;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      height: 100vh;
+    }
+    #contenedor {
+      display: none;
+      flex-direction: row;
+      margin-top: 20px;
+    }
+    #panel-info {
+      width: 180px;
+      margin-right: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+      height: 550px;
+    }
+    .ventana-info {
+      background: #fff;
+      border: 2px solid #ccc;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #header-datos {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 8px;
+      background: #f0f0f0;
+      border-bottom: 2px solid #444;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .info-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+      padding: 4px;
+    }
+    .info-top span {
+      font-size: 16px;
+      font-weight: normal;
+      margin-top: 2px;
+    }
+    #ventana-modo-top { border-radius: 6px; padding: 4px; color: #fff; }
+
+    #campo-juego {
+      position: relative;
+      width: 400px;
+      height: 550px;
+      background: #e0e0e0;
+      border: 2px solid #444;
+      overflow: hidden;
+    }
+    #conjugaciones {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #ddd;
+      z-index: 1;
+      box-sizing: border-box;
+    }
+    .opcion-conjugacion {
+      flex: 1;
+      margin: 0 5px;
+      padding: 8px;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 2px solid #aaa;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      user-select: none;
+      overflow: hidden;
+    }
+    .opcion-conjugacion:focus { outline: 3px solid #2196F3; }
+    .texto-ajustable {
+      display: inline-block;
+      transform-origin: center center;
+      white-space: nowrap;
+    }
+    .bloque {
+      position: absolute;
+      width: 80px; height: 40px;
+      background: #4CAF50;
+      color: #fff;
+      font-weight: bold;
+      text-align: center;
+      line-height: 40px;
+      border-radius: 6px;
+      z-index: 2;
+    }
+    .bloque.fijo { opacity: 0.5; background: #b71c1c; }
+    #mensaje {
+      position: absolute;
+      top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      border: 3px solid #f00;
+      padding: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+      z-index: 10;
+    }
+    /* ======= Botón Interrumpir + Confirmación ======= */
+    #btn-interrumpir {
+      padding: .6rem .8rem;
+      font-size: .95rem;
+      cursor: pointer;
+      border: 2px solid #444;
+      border-radius: 6px;
+      background: #fff;
+    }
+    #btn-interrumpir:hover { background: #f5f5f5; }
+    #confirm-exit {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 98;
+      text-align: center;
+      padding: 1rem;
+    }
+    #confirm-exit .box {
+      background: #222;
+      border: 2px solid #555;
+      padding: 1.2rem 1.4rem;
+      border-radius: 10px;
+      max-width: 420px;
+      width: 92%;
+    }
+    #confirm-exit .actions { margin-top: 1rem; display: flex; gap: .8rem; justify-content: center; }
+    #btn-confirm-exit, #btn-cancel-exit {
+      padding: .6rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      border: 2px solid #fff;
+      background: #333; color: #fff;
+    }
+    #btn-confirm-exit { border-color: #ff5252; }
+    #btn-confirm-exit:hover { background: #552222; }
+    #btn-cancel-exit:hover { background: #224; }
+      /* ======= Controles móviles ======= */
+    #campo-juego { touch-action: none; }
+    #mobile-controls { display: none; margin: 10px 0 0; gap: 8px; }
+    #mobile-controls button {
+      padding: .8rem 1rem; border: 2px solid #444; border-radius: 8px; background: #fff; font-size: 1.1rem; cursor: pointer;
+    }
+    /* Mostrar solo en pantallas táctiles o estrechas */
+    @media (pointer: coarse), (max-width: 640px) {
+      #mobile-controls { display: flex; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <!-- PANTALLA DE INICIO -->
+  <div id="start-screen">
+    <h1>Tetris Verbal</h1>
+    <p>Desarrollado por: Daniel Moncayo</p>
+    <label>Nivel:
+      <select id="menu-nivel">
+        <option value="easy">Fácil</option>
+        <option value="medium">Medio</option>
+        <option value="hard">Difícil</option>
+        <option value="custom">Personalizado</option>
+      </select>
+    </label>
+    <div id="custom-options">
+      <label>Modo:
+        <select id="custom-modo">
+          <option value="INDICATIVE">Indicativo</option>
+          <option value="SUBJUNCTIVE">Subjuntivo</option>
+        </select>
+      </label>
+      <label>Tiempo:
+        <select id="custom-tiempo">
+          <option value="PRESENT">Presente</option>
+        </select>
+      </label>
+      <div id="custom-subj-imp-wrapper" style="display:none; margin-top:.5rem;">
+        <label>Variante imp. subj.:
+          <select id="custom-subj-imp-var">
+            <option value="SE">-se (cantase)</option>
+            <option value="RA">-ra (cantara)</option>
+          </select>
+        </label>
+      </div>
+      <label>Verbos:
+        <select id="custom-verbo-tipo">
+          <option value="all">Todos</option>
+          <option value="regular">Regulares</option>
+          <option value="irregular">Irregulares</option>
+        </select>
+      </label>
+      <label>Nº de conjugaciones:
+        <input type="number" id="custom-count" min="5" max="100" value="5" />
+      </label>
+    </div>
+    <button id="start-btn">Iniciar</button>
+  </div>
+
+  <!-- PANTALLA DE NIVEL -->
+  <div id="level-screen">NIVEL 1</div>
+
+  <!-- PANTALLA FINAL -->
+  <div id="end-screen">
+    <div id="end-summary"></div>
+    <div class="end-actions">
+      <button id="btn-restart2">Reiniciar</button>
+      <button id="btn-mainmenu">Menú principal</button>
+    </div>
+  </div>
+
+  <div id="confirm-exit">
+    <div class="box">
+      <h3>¿Volver al menú principal?</h3>
+      <p>Se perderá el progreso de esta partida.</p>
+      <div class="actions">
+        <button id="btn-confirm-exit">Sí, salir</button>
+        <button id="btn-cancel-exit">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR DEL JUEGO -->
+  <div id="contenedor">
+    <div id="panel-info">
+      <div class="ventana-info" id="ventana-puntaje">PUNTAJE:<br><span>000</span></div>
+      <div class="ventana-info" id="ventana-nivel">NIVEL:<br><span>1</span></div>
+      <button id="btn-interrumpir">Volver al menú</button>
+    </div>
+    <div>
+      <div id="header-datos">
+        <div class="info-top" id="ventana-pronombre-top">PRONOMBRE<br><span>tú</span></div>
+        <div class="info-top" id="ventana-tiempo-top">TIEMPO VERBAL<br><span>presente</span></div>
+        <div class="info-top" id="ventana-modo-top">MODO<br><span>indicativo</span></div>
+      </div>
+      <div id="campo-juego">
+        <div id="mensaje"></div>
+        <div id="conjugaciones">
+          <button class="opcion-conjugacion" type="button">---</button>
+          <button class="opcion-conjugacion" type="button">---</button>
+          <button class="opcion-conjugacion" type="button">---</button>
+          <button class="opcion-conjugacion" type="button">---</button>
+        </div>
+      </div></div></div>
+
+  <!-- Controles móviles -->
+  <div id="mobile-controls" aria-label="Controles móviles">
+    <button type="button" data-act="left" aria-label="Mover a la izquierda">◀</button>
+    <button type="button" data-act="down" aria-label="Caída rápida">▼</button>
+    <button type="button" data-act="drop" aria-label="Caída instantánea">⤓</button>
+    <button type="button" data-act="right" aria-label="Mover a la derecha">▶</button>
+  </div>
+
+  <script type="module">
+    import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
+    window.SpanishVerbs = SpanishVerbs;
+
+    class Game {$1
+
+      /* ====== Utilidades de control ====== */
+      moveToColumn(i) {
+        if (!this.bloqueActual) return;
+        const cw = this.elems.campo.offsetWidth;
+        const colW = cw / 4;
+        this.posX = Math.round(i * colW + colW/2 - this.bloqueW/2);
+        this.posX = Math.max(0, Math.min(this.posX, cw - this.bloqueW));
+        this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
+      }
+
+      setupTouchControls() {
+        // 1) Tocar botones de opciones → mover a esa columna + caída rápida
+        this.elems.opcionesBtns().forEach((btn, i) => {
+          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloqueActual) return; this.moveToColumn(i); this.dropFast = true; };
+          btn.addEventListener('click', go);
+          btn.addEventListener('touchend', go, { passive: false });
+        });
+
+        // 2) Gestos sobre el campo de juego
+        const campo = this.elems.campo;
+        let touch = null;
+        const getTouch = (e) => {
+          if (!touch) return null;
+          for (const t of e.changedTouches) if (t.identifier === touch.id) return t; return null;
+        };
+        if (campo) {
+          campo.addEventListener('touchstart', (e) => {
+            if (!e.changedTouches.length) return;
+            const t = e.changedTouches[0];
+            touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved:false };
+          }, { passive: true });
+          campo.addEventListener('touchmove', (e) => {
+            const t = touch ? getTouch(e) : null; if (!t || !this.bloqueActual) return;
+            const dx = t.clientX - touch.lastX;
+            if (Math.abs(dx) > 0) {
+              this.posX += dx;
+              const maxX = this.elems.campo.offsetWidth - this.bloqueW;
+              this.posX = Math.max(0, Math.min(this.posX, maxX));
+              this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
+              touch.moved = true;
+            }
+            touch.lastX = t.clientX; touch.lastY = t.clientY;
+          }, { passive: true });
+          campo.addEventListener('touchend', (e) => {
+            const t = touch ? getTouch(e) : null; if (!t) return;
+            const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX;
+            if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) {
+              // Swipe hacia abajo → caída instantánea
+              this.dropFast = true;
+            } else if (!touch.moved && this.elems.campo) {
+              // Tap en el campo → alinear a columna tocada
+              const rect = this.elems.campo.getBoundingClientRect();
+              const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1));
+              const col = Math.floor(relX / rect.width * 4);
+              this.moveToColumn(col);
+              this.acelerado = true; // caída rápida (no instantánea)
+              setTimeout(() => this.acelerado = false, 250);
+            }
+            touch = null;
+          });
+        }
+
+        // 3) Barra de controles móviles
+        const bar = document.getElementById('mobile-controls');
+        if (bar) {
+          const step = 24;
+          const applyMove = (delta) => {
+            if (!this.bloqueActual) return;
+            this.posX += delta;
+            const maxX = this.elems.campo.offsetWidth - this.bloqueW;
+            this.posX = Math.max(0, Math.min(this.posX, maxX));
+            this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
+          };
+          bar.querySelector('[data-act="left"]').addEventListener('click', () => applyMove(-step));
+          bar.querySelector('[data-act="right"]').addEventListener('click', () => applyMove(step));
+          const down = bar.querySelector('[data-act="down"]');
+          const drop = bar.querySelector('[data-act="drop"]');
+          const setAccel = (on) => this.acelerado = !!on;
+          down.addEventListener('touchstart', () => setAccel(true), { passive: true });
+          down.addEventListener('touchend',   () => setAccel(false));
+          down.addEventListener('mousedown',  () => setAccel(true));
+          down.addEventListener('mouseup',    () => setAccel(false));
+          drop.addEventListener('click', () => { this.dropFast = true; });
+        }
+      }
+
+      /* ======================= TESTS BÁSICOS */ =======================
+       (Se ejecutan en DOMContentLoaded y no interfieren con el juego)
+    */
+    function runSmokeTests() {
+      const ok = (name) => console.log('✅', name);
+      const fail = (name, err) => console.error('❌', name, err?.message || err);
+      const t = (name, fn) => { try { fn(); ok(name); } catch (e) { fail(name, e); } };
+      t('#ventana-puntaje span existe', () => {
+        const el = document.querySelector('#ventana-puntaje span');
+        if (!el) throw new Error('No encontrado');
+      });
+      t('#ventana-nivel span existe', () => {
+        const el = document.querySelector('#ventana-nivel span');
+        if (!el) throw new Error('No encontrado');
+      });
+      t('Se puede setear texto en puntaje/nivel', () => {
+        const p = document.querySelector('#ventana-puntaje span');
+        const n = document.querySelector('#ventana-nivel span');
+        p.textContent = '000';
+        n.textContent = '1';
+      });
+      t('Pantallas base existen', () => {
+        if (!document.getElementById('start-screen')) throw new Error('start-screen');
+        if (!document.getElementById('contenedor')) throw new Error('contenedor');
+        if (!document.getElementById('level-screen')) throw new Error('level-screen');
+      });
+      t('Game.init existe', () => {
+        if (typeof Game.prototype.init !== 'function') throw new Error('init no está definida');
+      });
+      t('#start-btn existe', () => {
+        if (!document.getElementById('start-btn')) throw new Error('start-btn');
+      });
+      t('Controles móviles existen', () => {
+        const bar = document.getElementById('mobile-controls');
+        if (!bar) throw new Error('mobile-controls');
+        const btns = bar.querySelectorAll('button');
+        if (btns.length < 4) throw new Error('Faltan botones móviles');
+      });
+    });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      runSmokeTests();
+      const game = new Game();
+      game.init();
+    });
+  </script>
+</body>
+</html>
