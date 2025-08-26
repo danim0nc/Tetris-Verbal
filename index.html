@@ -268,7 +268,14 @@
       #campo-juego {
         width: min(96vw, 420px);
         height: auto;
-        aspect-ratio: 400 /
+        aspect-ratio: 400 / 550;
+      }
+      /* Ajustes tipográficos y de controles */
+      #header-datos { font-size: 11px; }
+      .info-top span { font-size: 14px; }
+      .opcion-conjugacion { font-size: 14px; padding: 6px; }
+      /* Barra móvil visible */
+      #mobile-controls { display: flex; justify-content: center; }
     }
   </style>
 </head>
@@ -799,3 +806,26 @@
       const t = (name, fn) => { try { fn(); ok(name); } catch (e) { fail(name, e); } };
       t('#ventana-puntaje span existe', () => { const el = document.querySelector('#ventana-puntaje span'); if (!el) throw new Error('No encontrado'); });
       t('#ventana-nivel span existe', () => { const el = document.querySelector('#ventana-nivel span'); if (!el) throw new Error('No encontrado'); });
+      t('Pantallas base existen', () => {
+        if (!document.getElementById('start-screen')) throw new Error('start-screen');
+        if (!document.getElementById('contenedor')) throw new Error('contenedor');
+        if (!document.getElementById('level-screen')) throw new Error('level-screen');
+      });
+      t('Game.init existe', () => { if (typeof Game.prototype.init !== 'function') throw new Error('init no definida'); });
+      t('#start-btn existe', () => { if (!document.getElementById('start-btn')) throw new Error('start-btn'); });
+      t('Controles móviles existen', () => {
+        const bar = document.getElementById('mobile-controls');
+        if (!bar) throw new Error('mobile-controls');
+        const btns = bar.querySelectorAll('button');
+        if (btns.length < 4) throw new Error('Faltan botones móviles');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      try { runSmokeTests(); } catch(e) { console.warn('Smoke tests fallaron:', e); }
+      const game = new Game();
+      game.init();
+    });
+  </script>
+</body>
+</html>
