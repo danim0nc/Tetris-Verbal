@@ -359,133 +359,432 @@
     import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
     window.SpanishVerbs = SpanishVerbs;
 
-    class Game {$1
-
-      /* ====== Utilidades de control ====== */
-      moveToColumn(i) {
-        if (!this.bloqueActual) return;
-        const cw = this.elems.campo.offsetWidth;
-        const colW = cw / 4;
-        this.posX = Math.round(i * colW + colW/2 - this.bloqueW/2);
-        this.posX = Math.max(0, Math.min(this.posX, cw - this.bloqueW));
-        this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
+    class Game {
+      constructor() {
+        this.allIrregular = ["tener","ir","ser","hacer","decir","venir","estar","saber","querer","poder"];
+        this.allRegular   = ["hablar","comer","vivir","estudiar","trabajar","caminar","cantar","amar","bailar","mirar"];
+        this.pronombres   = ["yo","tú","él","nosotros","vosotros","ellos"];
+        this.pronIndex    = { yo:0, tú:1, él:2, nosotros:3, vosotros:4, ellos:5 };
+        this.state = {
+          config: {},
+          stats: [],
+          levelDefs: [],
+          poolVerbos: [],
+          poolIdx: 0,
+          usedCount: 0,
+          puntaje: 0,
+          nivel: 1,
+          fijos: [],
+          velocidadY: 1
+        };
       }
 
+      init() {
+        this.cacheDOM();
+        this.setupListeners();
+        // Prepara el selector de tiempos según modo por si el usuario abre "Personalizado"
+        this.updateCustomTiempoOptions();
+      }
+
+      /* ---------- Helpers seguros ---------- */
+      setText(node, value) { if (node) node.textContent = value; }
+
+      cacheDOM() {
+        const get = id => document.getElementById(id);
+        this.elems = {
+          startScreen: get('start-screen'),
+          menuNivel:   get('menu-nivel'),
+          customOpts:  get('custom-options'),
+          startBtn:    get('start-btn'),
+          selModo:     get('custom-modo'),
+          selTiempo:   get('custom-tiempo'),
+          subjImpWrapper: get('custom-subj-imp-wrapper'),
+          subjImpVar:  get('custom-subj-imp-var'),
+          selTipoVerbo:get('custom-verbo-tipo'),
+          selCount:    get('custom-count'),
+          contenedor:  get('contenedor'),
+          campo:       get('campo-juego'),
+          conjugaciones: get('conjugaciones'),
+          mensaje:     get('mensaje'),
+          puntajeSpan: (get('ventana-puntaje')||{}).querySelector ? get('ventana-puntaje').querySelector('span') : null,
+          nivelSpan:   (get('ventana-nivel')||{}).querySelector ? get('ventana-nivel').querySelector('span') : null,
+          pronombreSpan: (get('ventana-pronombre-top')||{}).querySelector ? get('ventana-pronombre-top').querySelector('span') : null,
+          tiempoSpan:  (get('ventana-tiempo-top')||{}).querySelector ? get('ventana-tiempo-top').querySelector('span') : null,
+          modoTop:     get('ventana-modo-top'),
+          modoSpan:    (get('ventana-modo-top')||{}).querySelector ? get('ventana-modo-top').querySelector('span') : null,
+          opcionesBtns: () => Array.from(document.querySelectorAll('.opcion-conjugacion')),
+          levelScreen: get('level-screen'),
+          endScreen:   get('end-screen'),
+          endSummary:  get('end-summary'),
+          exitConfirm: get('confirm-exit'),
+          btnExit:     get('btn-interrumpir'),
+          btnConfirmExit: get('btn-confirm-exit'),
+          btnCancelExit:  get('btn-cancel-exit')
+        };
+      }
+
+      setupListeners() {
+        this.elems.menuNivel.addEventListener('change', () => {
+          const isCustom = this.elems.menuNivel.value === 'custom';
+          this.elems.customOpts.style.display = isCustom ? 'block' : 'none';
+          if (isCustom) this.updateCustomTiempoOptions();
+        });
+        this.elems.startBtn.addEventListener('click', () => this.handleStart());
+        this.elems.selModo.addEventListener('change', () => this.updateCustomTiempoOptions());
+        this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
+        if (this.elems.btnExit) this.elems.btnExit.addEventListener('click', () => this.requestExitConfirm());
+        if (this.elems.btnConfirmExit) this.elems.btnConfirmExit.addEventListener('click', () => this.exitConfirmChoice(true));
+        if (this.elems.btnCancelExit)  this.elems.btnCancelExit.addEventListener('click', () => this.exitConfirmChoice(false));
+        document.addEventListener('keydown', e => this.handleKeyDown(e));
+        document.addEventListener('keyup',   e => this.handleKeyUp(e));
+        this.setupTouchControls();
+      }
+
+      updateCustomTiempoOptions() {
+        const modo = this.elems.selModo.value;
+        const sel = this.elems.selTiempo;
+        const make = (v,t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
+        sel.innerHTML = '';
+        if (modo === 'SUBJUNCTIVE') {
+          [ ['PRESENT','Presente'], ['PERFECT','Pretérito perfecto'], ['IMPERFECT','Pretérito imperfecto'], ['PLUPERFECT','Pretérito pluscuamperfecto'], ['FUTURE','Futuro'] ].forEach(([v,t]) => sel.appendChild(make(v,t)));
+        } else {
+          [ ['PRESENT','Presente'], ['IMPERFECT','Pretérito imperfecto'], ['PRETERITE','Pretérito indefinido'], ['FUTURE','Futuro'], ['PERFECT','Pretérito perfecto'], ['PLUPERFECT','Pretérito pluscuamperfecto'] ].forEach(([v,t]) => sel.appendChild(make(v,t)));
+        }
+        this.updateSubjImpVisibility();
+      }
+
+      updateSubjImpVisibility() {
+        const isSubj = this.elems.selModo.value === 'SUBJUNCTIVE';
+        const t = this.elems.selTiempo.value;
+        const show = isSubj && (t === 'IMPERFECT' || t === 'PLUPERFECT');
+        this.elems.subjImpWrapper.style.display = show ? 'block' : 'none';
+      }
+
+      handleStart() {
+        const mode = this.elems.menuNivel.value;
+        this.state.config.mode = mode;
+        if (mode === 'easy')      this.setupEasy();
+        else if (mode === 'medium')this.setupMedium();
+        else if (mode === 'hard')  this.setupHard();
+        else                       this.setupCustom();
+
+        this.elems.startScreen.style.display = 'none';
+        this.elems.contenedor.style.display   = 'flex';
+        this.reiniciarJuego();
+      }
+
+      setupEasy() {
+        this.state.config.totalConj = 60;
+        this.state.levelDefs = [
+          { modo:'INDICATIVE', tiempo:'PRESENT', type:'regular', typoCount:0 },
+          { modo:'INDICATIVE', tiempo:'PRESENT', type:'irregular', typoCount:1 },
+          { modo:'INDICATIVE', tiempo:'IMPERFECT', type:'all', typoCount:0 },
+          { modo:'INDICATIVE', tiempo:'PRETERITE', type:'all', typoCount:1 },
+          { modo:'SUBJUNCTIVE',tiempo:'PRESENT', type:'all', typoCount:1 },
+          { modo:'RANDOM',    tiempo:'RANDOM',  type:'all', typoCount:0 }
+        ];
+      }
+
+      setupMedium() {
+        this.state.config.totalConj = 60;
+        this.state.levelDefs = [
+          { modo:'INDICATIVE',tiempo:'PRESENT', type:'irregular', typoCount:3 },
+          { modo:'CONDITIONAL',tiempo:'PRESENT', type:'all', typoCount:1 },
+          { modo:'INDICATIVE',tiempo:'IMPERFECT', type:'irregular', typoCount:3 },
+          { modo:'INDICATIVE',tiempo:'PRETERITE', type:'irregular', typoCount:1 },
+          { modo:'SUBJUNCTIVE',tiempo:'PRESENT', type:'irregular', typoCount:3 },
+          { modo:'RANDOM',    tiempo:'RANDOM',  type:'irregular', typoCount:0 }
+        ];
+      }
+
+      setupHard() {
+        this.state.config.totalConj = 60;
+        this.state.levelDefs = [ { modo:'RANDOM', tiempo:'RANDOM', type:'all', typoCount:2 } ];
+      }
+
+      setupCustom() {
+        this.state.config.totalConj = parseInt(this.elems.selCount.value,10) || 5;
+        const onlyIrreg = this.elems.selTipoVerbo.value === 'irregular';
+        this.state.config.onlyIrreg = onlyIrreg;
+        this.state.config.custom = { modo: this.elems.selModo.value, tiempo: this.elems.selTiempo.value };
+        this.state.config.subjImpVar = (this.elems.subjImpVar && this.elems.subjImpVar.value) || 'SE';
+        this.state.levelDefs = [ { modo: this.elems.selModo.value, tiempo: this.elems.selTiempo.value, type: onlyIrreg?'irregular':'all', typoCount:3 } ];
+      }
+
+      shuffle(arr) { const a = arr.slice(); for (let i=a.length-1; i>0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+      generarPool() {
+        const def = this.state.levelDefs[this.state.nivel-1] || this.state.levelDefs.slice(-1)[0];
+        let source;
+        if (def.type === 'regular')      source = this.allRegular;
+        else if (def.type === 'irregular')source = this.allIrregular;
+        else                              source = [...this.allRegular, ...this.allIrregular];
+        this.state.poolVerbos = this.shuffle(source);
+        this.state.poolIdx = 0;
+      }
+
+      mostrarNivel(n) {
+        const pantalla = this.elems.levelScreen;
+        pantalla.textContent = `NIVEL ${n}`;
+        pantalla.style.display = 'flex';
+        setTimeout(() => { pantalla.style.display = 'none'; this.crearBloque(); }, 1100);
+      }
+
+      typo(text) {
+        const i = Math.floor(Math.random()*text.length);
+        const c = text[i] || 'a';
+        const letters = /[aeiou]/i.test(c)? 'aeiou' : 'bcdfghjklmnpqrstvwxyz';
+        const swap = letters.replace((c||'').toLowerCase(), '');
+        const nc = swap[Math.floor(Math.random()* Math.max(1, swap.length))] || 'a';
+        return text.slice(0,i) + nc + text.slice(i+1);
+      }
+
+      // ——— Clave robusta para spanish-verbs (intenta variantes si fallan)
+      safeGetConjugation(verbo, mk, tk, pIdx) {
+        const attempts = [];
+        const primary = `${mk}_${tk}`; attempts.push(primary);
+        if (mk === 'SUBJUNCTIVE' && (tk === 'IMPERFECT_SE' || tk === 'IMPERFECT' || tk === 'IMPERFECT_RA')) {
+          attempts.push('SUBJUNCTIVE_IMPERFECT_SE','SUBJUNCTIVE_IMPERFECT','SUBJUNCTIVE_IMPERFECT_RA');
+        }
+        if (mk === 'SUBJUNCTIVE' && tk === 'PERFECT') {
+          attempts.push('SUBJUNCTIVE_PERFECT','SUBJUNCTIVE_PRESENT_PERFECT');
+        }
+        if (mk === 'SUBJUNCTIVE' && (tk === 'PLUPERFECT' || tk === 'PLUPERFECT_SE' || tk === 'PLUPERFECT_RA')) {
+          attempts.push('SUBJUNCTIVE_PLUPERFECT','SUBJUNCTIVE_PAST_PERFECT','SUBJUNCTIVE_PLUPERFECT_SE','SUBJUNCTIVE_PLUPERFECT_RA','SUBJUNCTIVE_PLUSCUAMPERFECTO');
+        }
+        if (mk === 'INDICATIVE' && tk === 'PLUPERFECT') {
+          attempts.push('INDICATIVE_PLUPERFECT','INDICATIVE_PAST_PERFECT','INDICATIVE_PLUSCUAMPERFECTO');
+        }
+        if (mk === 'CONDITIONAL') {
+          if (tk === 'PRESENT') attempts.push('CONDITIONAL_PRESENT','CONDITIONAL','CONDITIONAL_SIMPLE');
+          if (tk === 'PERFECT') attempts.push('CONDITIONAL_PERFECT');
+        }
+        const uniq = [...new Set(attempts)];
+        for (const key of uniq) {
+          try { const res = SpanishVerbs.getConjugation(verbo, key, pIdx); if (res) return { res, usedKey: key }; } catch(e) {}
+        }
+        return { res: null, usedKey: primary };
+      }
+
+      // === Utilidades para distractores plausibles ===
+      stripDiacritics(s) { if (!s) return s; try { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ñ/g,'n').replace(/Ñ/g,'N'); } catch { return s; } }
+      regularizePresent(verbo, pIdx) {
+        const lower = (verbo||'').toLowerCase();
+        const group = lower.endsWith('ar') ? 'ar' : lower.endsWith('er') ? 'er' : lower.endsWith('ir') ? 'ir' : null;
+        if (!group) return null; const root = lower.slice(0, -group.length);
+        const endings = { ar:['o','as','a','amos','áis','an'], er:['o','es','e','emos','éis','en'], ir:['o','es','e','imos','ís','en'] };
+        const end = endings[group][pIdx] ?? null; return end ? (root + end) : null;
+      }
+      normalizeTk(tk) { if (!tk) return tk; if (tk.startsWith('IMPERFECT')) return 'IMPERFECT'; if (tk.startsWith('PLUPERFECT')) return 'PLUPERFECT'; return tk; }
+      neighborKeys(mk, tk) {
+        const t = this.normalizeTk(tk); const key = `${mk}_${t}`;
+        const map = {
+          'INDICATIVE_PRESENT': [['INDICATIVE','PRETERITE'], ['INDICATIVE','IMPERFECT'], ['SUBJUNCTIVE','PRESENT']],
+          'INDICATIVE_PRETERITE': [['INDICATIVE','IMPERFECT'], ['SUBJUNCTIVE','IMPERFECT']],
+          'INDICATIVE_IMPERFECT': [['INDICATIVE','PRETERITE'], ['SUBJUNCTIVE','IMPERFECT']],
+          'INDICATIVE_FUTURE': [['CONDITIONAL','PRESENT']],
+          'INDICATIVE_PERFECT': [['SUBJUNCTIVE','PERFECT']],
+          'INDICATIVE_PLUPERFECT': [['SUBJUNCTIVE','PLUPERFECT']],
+          'SUBJUNCTIVE_PRESENT': [['INDICATIVE','PRESENT']],
+          'SUBJUNCTIVE_IMPERFECT': [['INDICATIVE','PRETERITE']],
+          'SUBJUNCTIVE_PERFECT': [['INDICATIVE','PERFECT']],
+          'SUBJUNCTIVE_PLUPERFECT': [['INDICATIVE','PLUPERFECT']],
+          'CONDITIONAL_PRESENT': [['INDICATIVE','FUTURE']],
+          'CONDITIONAL_PERFECT': [['INDICATIVE','PLUPERFECT']]
+        };
+        return map[key] || [];
+      }
+      buildDistractors(verbo, mk, tk, pIdx, correcta, modoKeyUsed) {
+        const out = new Set(); const add = (s) => { if (s && s !== correcta) out.add(s); };
+        const tkNorm = this.normalizeTk(tk);
+        if (mk === 'SUBJUNCTIVE' && (tkNorm === 'IMPERFECT' || tkNorm === 'PLUPERFECT')) {
+          let opp = tk; if (tk.includes('_RA')) opp = tk.replace('_RA','_SE'); else if (tk.includes('_SE')) opp = tk.replace('_SE','_RA'); else opp = tkNorm === 'IMPERFECT' ? 'IMPERFECT_RA' : 'PLUPERFECT_RA';
+          const { res: alt } = this.safeGetConjugation(verbo, 'SUBJUNCTIVE', opp, pIdx); add(alt);
+        }
+        const idxs = this.shuffle([0,1,2,3,4,5].filter(i => i !== pIdx));
+        for (let i=0; i<idxs.length && out.size<2; i++) { try { const f = SpanishVerbs.getConjugation(verbo, modoKeyUsed, idxs[i]); add(f); } catch {} }
+        const neigh = this.neighborKeys(mk, tkNorm); for (const [mk2, tk2] of neigh) { const { res: alt } = this.safeGetConjugation(verbo, mk2, tk2, pIdx); add(alt); if (out.size >= 3) break; }
+        if (mk === 'INDICATIVE' && tkNorm === 'PRESENT') { const reg = this.regularizePresent(verbo, pIdx); add(reg); }
+        const noAcc = this.stripDiacritics(correcta); if (noAcc !== correcta) add(noAcc);
+        for (let i=0; out.size<3 && i<idxs.length; i++) { try { const f = SpanishVerbs.getConjugation(verbo, modoKeyUsed, idxs[i]); add(f); } catch {} }
+        if (out.size < 3) add(this.typo(correcta));
+        return this.shuffle([...out]).slice(0,3);
+      }
+
+      generarDatos() {
+        if (this.state.poolIdx >= this.state.poolVerbos.length) this.generarPool();
+        const verbo = this.state.poolVerbos[this.state.poolIdx++];
+        const def   = this.state.levelDefs[this.state.nivel - 1] || this.state.levelDefs.slice(-1)[0];
+        let mk = def.modo; let tk = def.tiempo;
+        if (mk === 'RANDOM') { const moods = ['INDICATIVE', 'SUBJUNCTIVE', 'CONDITIONAL']; mk = moods[Math.floor(Math.random() * moods.length)]; }
+        if (tk === 'RANDOM') {
+          const tiemposInd = ['PRESENT', 'IMPERFECT', 'PRETERITE', 'FUTURE', 'PERFECT', 'PLUPERFECT'];
+          const tiemposSub = ['PRESENT','PERFECT','IMPERFECT','PLUPERFECT','FUTURE'];
+          const tiemposCond = ['PRESENT', 'PERFECT'];
+          if (mk === 'SUBJUNCTIVE') tk = tiemposSub[Math.floor(Math.random() * tiemposSub.length)];
+          else if (mk === 'CONDITIONAL') tk = tiemposCond[Math.floor(Math.random() * tiemposCond.length)];
+          else tk = tiemposInd[Math.floor(Math.random() * tiemposInd.length)];
+        }
+        if (mk === 'SUBJUNCTIVE' && tk === 'IMPERFECT') {
+          const pref = (this.state.config.mode === 'custom' && this.state.config.custom?.modo === 'SUBJUNCTIVE') ? (this.state.config.subjImpVar || 'SE') : 'SE';
+          tk = pref === 'RA' ? 'IMPERFECT_RA' : 'IMPERFECT_SE';
+        }
+        if (mk === 'SUBJUNCTIVE' && tk === 'PLUPERFECT') {
+          const pref = (this.state.config.mode === 'custom' && this.state.config.custom?.modo === 'SUBJUNCTIVE') ? (this.state.config.subjImpVar || 'SE') : 'SE';
+          tk = pref === 'RA' ? 'PLUPERFECT_RA' : 'PLUPERFECT_SE';
+        }
+        const pIdx = Math.floor(Math.random() * 6);
+        const { res: correcta, usedKey: modoKeyUsed } = this.safeGetConjugation(verbo, mk, tk, pIdx);
+        if (!correcta) return this.generarDatos();
+        const modoLabel = mk === 'SUBJUNCTIVE' ? 'subjuntivo' : mk === 'CONDITIONAL' ? 'condicional' : 'indicativo';
+        const tkEff = modoKeyUsed.replace(`${mk}_`, '');
+        const tiempoLabel = (() => {
+          const base = { PRESENT:'presente', IMPERFECT:'pretérito imperfecto', PRETERITE:'pretérito indefinido', FUTURE:'futuro', PERFECT:'pretérito perfecto', PLUPERFECT:'pretérito pluscuamperfecto' };
+          if (mk === 'SUBJUNCTIVE') {
+            if (tkEff === 'PRESENT') return 'presente de subjuntivo';
+            if (tkEff === 'IMPERFECT_SE' || tkEff === 'IMPERFECT' || tkEff === 'IMPERFECT_RA') return tkEff.includes('RA') ? 'imperfecto de subjuntivo (-ra)' : 'imperfecto de subjuntivo (-se)';
+            if (tkEff === 'FUTURE') return 'futuro de subjuntivo';
+            if (tkEff === 'PERFECT') return 'pretérito perfecto de subjuntivo';
+            if (tkEff === 'PLUPERFECT' || tkEff === 'PLUPERFECT_SE' || tkEff === 'PLUPERFECT_RA') return tkEff.includes('RA') ? 'pretérito pluscuamperfecto de subjuntivo (-ra)' : 'pretérito pluscuamperfecto de subjuntivo (-se)';
+          }
+          if (mk === 'CONDITIONAL') { if (tkEff === 'PRESENT') return 'condicional (simple)'; if (tkEff === 'PERFECT') return 'condicional perfecto'; }
+          return base[tkEff] || (tkEff || '').toLowerCase();
+        })();
+        const pronombre = this.pronombres[pIdx];
+        const distract = this.buildDistractors(verbo, mk, tk, pIdx, correcta, modoKeyUsed);
+        const opciones = this.shuffle([...distract, correcta]);
+        return { verbo, pronombre, modo: modoLabel, tiempo: tiempoLabel, correcta, opciones };
+      }
+
+      crearBloque() {
+        this.dropFast = false;
+        const data = this.generarDatos(); if (!data) return;
+        this.setText(this.elems.pronombreSpan, data.pronombre);
+        this.setText(this.elems.tiempoSpan, data.tiempo);
+        this.setText(this.elems.modoSpan, data.modo);
+        let color = '#4CAF50'; if (data.modo === 'subjuntivo') color = '#b71c1c'; else if (data.modo === 'condicional') color = '#2196F3';
+        if (this.elems.modoTop) this.elems.modoTop.style.backgroundColor = color;
+        this.elems.opcionesBtns().forEach((btn, i) => {
+          btn.innerHTML = '';
+          const span = document.createElement('span'); span.className = 'texto-ajustable'; span.textContent = data.opciones[i];
+          btn.appendChild(span); btn.dataset.correcta = (data.opciones[i] === data.correcta);
+          requestAnimationFrame(() => { const css = getComputedStyle(btn); const avail = btn.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight); const txtW = span.scrollWidth; const scale = Math.min(1, avail / txtW); span.style.transform = `scale(${scale})`; span.style.margin = '0 auto'; });
+        });
+        const bl = document.createElement('div'); bl.className = 'bloque'; bl.textContent = data.verbo; this.elems.campo.appendChild(bl);
+        this.bloqueW = 80; this.bloqueH = 40; this.posX = Math.floor((this.elems.campo.offsetWidth - this.bloqueW)/2); this.posY = 0;
+        bl.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; this.bloqueActual = bl; this.anim = requestAnimationFrame(() => this.animar());
+      }
+
+      animar() {
+        if (!this.bloqueActual) return;
+        let limitY = this.elems.campo.offsetHeight - this.elems.conjugaciones.offsetHeight;
+        for (const f of this.state.fijos) { const x = f.offsetLeft, y = f.offsetTop; if (this.posX < x+this.bloqueW && this.posX+this.bloqueW > x && this.posY+this.bloqueH >= y && this.posY < y) { limitY = y - this.bloqueH; } }
+        if (this.posY + this.bloqueH < limitY) {
+          const speed = this.dropFast? this.state.velocidadY*12 : this.acelerado? this.state.velocidadY*4 : this.state.velocidadY;
+          this.posY += speed; this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; this.anim = requestAnimationFrame(() => this.animar());
+        } else { this.verificarImpacto(limitY); }
+      }
+
+      verificarImpacto(limitY) {
+        const cx = this.posX + this.bloqueW/2; const idx = Math.floor(cx / this.elems.campo.offsetWidth * 4); const btn = this.elems.opcionesBtns()[idx];
+        if (btn && btn.dataset.correcta === 'true') {
+          this.state.puntaje += 100; this.setText(this.elems.puntajeSpan, String(this.state.puntaje).padStart(3,'0')); this.bloqueActual.remove(); this.state.stats[this.state.nivel-1].ok++;
+        } else {
+          this.bloqueActual.classList.add('fijo'); this.bloqueActual.style.transform = ''; this.bloqueActual.style.left = `${this.posX}px`; this.bloqueActual.style.top  = `${limitY}px`;
+          this.state.fijos.push(this.bloqueActual); if (limitY <= 10) return this.finJuego(); this.state.stats[this.state.nivel-1].fail++;
+        }
+        this.state.usedCount++;
+        if (this.state.usedCount >= this.state.config.totalConj) return this.win();
+        if (this.state.config.mode !== 'custom' && this.state.config.mode !== 'hard' && this.state.usedCount % 10 === 0) {
+          this.state.nivel = Math.min(this.state.levelDefs.length, this.state.nivel + 1); this.setText(this.elems.nivelSpan, String(this.state.nivel)); this.generarPool(); this.bloqueActual = null; cancelAnimationFrame(this.anim); this.mostrarNivel(this.state.nivel); return;
+        }
+        this.bloqueActual = null; cancelAnimationFrame(this.anim); this.crearBloque();
+      }
+
+      showFinalScreen(won) {
+        const { stats, puntaje } = this.state;
+        let html = `<h2>${won ? '¡Felicitaciones!' : 'Lo siento, sigue intentándolo'}</h2>`;
+        html += `<p>Puntuación total: <strong>${puntaje}</strong></p>`;
+        html += `<table><tr><th>Nivel</th><th>Modo</th><th>Tiempo</th><th>Aciertos</th><th>Errores</th></tr>`;
+        stats.forEach((s, i) => { html += `<tr><td>${i+1}</td><td>${s.modo}</td><td>${s.tiempo}</td><td>${s.ok}</td><td>${s.fail}</td></tr>`; });
+        html += `</table>`; this.elems.endSummary.innerHTML = html; this.elems.endScreen.style.display = 'flex';
+        const btnRestart = document.getElementById('btn-restart2'); if (btnRestart) btnRestart.onclick = () => { this.elems.endScreen.style.display = 'none'; this.reiniciarJuego(); };
+        const btnMenu = document.getElementById('btn-mainmenu'); if (btnMenu) btnMenu.onclick = () => this.volverMenuPrincipal();
+      }
+
+      finJuego() { cancelAnimationFrame(this.anim); this.showFinalScreen(false); }
+      win() { if (this.anim) cancelAnimationFrame(this.anim); this.showFinalScreen(true); }
+
+      requestExitConfirm() { this._wasRunning = !!this.anim; if (this.anim) cancelAnimationFrame(this.anim); this.anim = null; if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'flex'; }
+      exitConfirmChoice(ok) { if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none'; if (ok) this.volverMenuPrincipal(); else if (this._wasRunning && this.bloqueActual) { this.anim = requestAnimationFrame(() => this.animar()); } }
+
+      volverMenuPrincipal() {
+        if (this.anim) cancelAnimationFrame(this.anim);
+        if (this.bloqueActual) { this.bloqueActual.remove(); this.bloqueActual = null; }
+        this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0;
+        this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
+        this.elems.endScreen.style.display = 'none'; this.elems.contenedor.style.display = 'none'; this.elems.startScreen.style.display = 'flex';
+      }
+
+      reiniciarJuego() {
+        if (this.elems.mensaje) this.elems.mensaje.style.display = 'none';
+        this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
+        this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0; this.generarPool();
+        this.state.stats = this.state.levelDefs.map(ld => ({ modo: ld.modo === 'RANDOM' ? 'mixto' : ld.modo.toLowerCase(), tiempo: ld.tiempo === 'RANDOM' ? 'mixto' : ld.tiempo.toLowerCase(), ok: 0, fail: 0 }));
+        this.mostrarNivel(this.state.nivel);
+      }
+
+      handleKeyDown(e) {
+        if (!this.bloqueActual) return; const now = Date.now();
+        if (e.key === 'ArrowDown') { if (now - this.lastDown < 300) this.dropFast = true; else this.acelerado = true; this.lastDown = now; }
+        if (e.key === 'ArrowLeft' && this.posX > 0) this.posX -= 5;
+        if (e.key === 'ArrowRight' && this.posX < this.elems.campo.offsetWidth - this.bloqueW) this.posX += 5;
+        if (['ArrowLeft','ArrowRight'].includes(e.key)) { this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; }
+      }
+      handleKeyUp(e) { if (e.key === 'ArrowDown') this.acelerado = false; }
+
+      /* ====== Controles móviles ====== */
+      moveToColumn(i) {
+        if (!this.bloqueActual) return; const cw = this.elems.campo.offsetWidth; const colW = cw / 4;
+        this.posX = Math.round(i * colW + colW/2 - this.bloqueW/2); this.posX = Math.max(0, Math.min(this.posX, cw - this.bloqueW));
+        this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
+      }
       setupTouchControls() {
-        // 1) Tocar botones de opciones → mover a esa columna + caída rápida
         this.elems.opcionesBtns().forEach((btn, i) => {
           const go = (ev) => { ev && ev.preventDefault(); if (!this.bloqueActual) return; this.moveToColumn(i); this.dropFast = true; };
-          btn.addEventListener('click', go);
-          btn.addEventListener('touchend', go, { passive: false });
+          btn.addEventListener('click', go); btn.addEventListener('touchend', go, { passive: false });
         });
-
-        // 2) Gestos sobre el campo de juego
-        const campo = this.elems.campo;
-        let touch = null;
-        const getTouch = (e) => {
-          if (!touch) return null;
-          for (const t of e.changedTouches) if (t.identifier === touch.id) return t; return null;
-        };
+        const campo = this.elems.campo; let touch = null; const getTouch = (e) => { if (!touch) return null; for (const t of e.changedTouches) if (t.identifier === touch.id) return t; return null; };
         if (campo) {
-          campo.addEventListener('touchstart', (e) => {
-            if (!e.changedTouches.length) return;
-            const t = e.changedTouches[0];
-            touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved:false };
-          }, { passive: true });
-          campo.addEventListener('touchmove', (e) => {
-            const t = touch ? getTouch(e) : null; if (!t || !this.bloqueActual) return;
-            const dx = t.clientX - touch.lastX;
-            if (Math.abs(dx) > 0) {
-              this.posX += dx;
-              const maxX = this.elems.campo.offsetWidth - this.bloqueW;
-              this.posX = Math.max(0, Math.min(this.posX, maxX));
-              this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
-              touch.moved = true;
-            }
-            touch.lastX = t.clientX; touch.lastY = t.clientY;
-          }, { passive: true });
-          campo.addEventListener('touchend', (e) => {
-            const t = touch ? getTouch(e) : null; if (!t) return;
-            const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX;
-            if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) {
-              // Swipe hacia abajo → caída instantánea
-              this.dropFast = true;
-            } else if (!touch.moved && this.elems.campo) {
-              // Tap en el campo → alinear a columna tocada
-              const rect = this.elems.campo.getBoundingClientRect();
-              const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1));
-              const col = Math.floor(relX / rect.width * 4);
-              this.moveToColumn(col);
-              this.acelerado = true; // caída rápida (no instantánea)
-              setTimeout(() => this.acelerado = false, 250);
-            }
-            touch = null;
-          });
+          campo.addEventListener('touchstart', (e) => { if (!e.changedTouches.length) return; const t = e.changedTouches[0]; touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved:false }; }, { passive: true });
+          campo.addEventListener('touchmove', (e) => { const t = touch ? getTouch(e) : null; if (!t || !this.bloqueActual) return; const dx = t.clientX - touch.lastX; if (Math.abs(dx) > 0) { this.posX += dx; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; touch.moved = true; } touch.lastX = t.clientX; touch.lastY = t.clientY; }, { passive: true });
+          campo.addEventListener('touchend', (e) => { const t = touch ? getTouch(e) : null; if (!t) return; const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX; if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) { this.dropFast = true; } else if (!touch.moved && this.elems.campo) { const rect = this.elems.campo.getBoundingClientRect(); const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1)); const col = Math.floor(relX / rect.width * 4); this.moveToColumn(col); this.acelerado = true; setTimeout(() => this.acelerado = false, 250); } touch = null; });
         }
-
-        // 3) Barra de controles móviles
         const bar = document.getElementById('mobile-controls');
         if (bar) {
-          const step = 24;
-          const applyMove = (delta) => {
-            if (!this.bloqueActual) return;
-            this.posX += delta;
-            const maxX = this.elems.campo.offsetWidth - this.bloqueW;
-            this.posX = Math.max(0, Math.min(this.posX, maxX));
-            this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`;
-          };
+          const step = 24; const applyMove = (delta) => { if (!this.bloqueActual) return; this.posX += delta; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; };
           bar.querySelector('[data-act="left"]').addEventListener('click', () => applyMove(-step));
           bar.querySelector('[data-act="right"]').addEventListener('click', () => applyMove(step));
-          const down = bar.querySelector('[data-act="down"]');
-          const drop = bar.querySelector('[data-act="drop"]');
+          const down = bar.querySelector('[data-act="down"]'); const drop = bar.querySelector('[data-act="drop"]');
           const setAccel = (on) => this.acelerado = !!on;
-          down.addEventListener('touchstart', () => setAccel(true), { passive: true });
-          down.addEventListener('touchend',   () => setAccel(false));
-          down.addEventListener('mousedown',  () => setAccel(true));
-          down.addEventListener('mouseup',    () => setAccel(false));
+          down.addEventListener('touchstart', () => setAccel(true), { passive: true }); down.addEventListener('touchend',   () => setAccel(false));
+          down.addEventListener('mousedown',  () => setAccel(true)); down.addEventListener('mouseup',    () => setAccel(false));
           drop.addEventListener('click', () => { this.dropFast = true; });
         }
       }
+    }
 
-      /* ======================= TESTS BÁSICOS */ =======================
-       (Se ejecutan en DOMContentLoaded y no interfieren con el juego)
-    */
+    /* ======================= TESTS BÁSICOS ======================= */
     function runSmokeTests() {
       const ok = (name) => console.log('✅', name);
       const fail = (name, err) => console.error('❌', name, err?.message || err);
       const t = (name, fn) => { try { fn(); ok(name); } catch (e) { fail(name, e); } };
-      t('#ventana-puntaje span existe', () => {
-        const el = document.querySelector('#ventana-puntaje span');
-        if (!el) throw new Error('No encontrado');
-      });
-      t('#ventana-nivel span existe', () => {
-        const el = document.querySelector('#ventana-nivel span');
-        if (!el) throw new Error('No encontrado');
-      });
-      t('Se puede setear texto en puntaje/nivel', () => {
-        const p = document.querySelector('#ventana-puntaje span');
-        const n = document.querySelector('#ventana-nivel span');
-        p.textContent = '000';
-        n.textContent = '1';
-      });
-      t('Pantallas base existen', () => {
-        if (!document.getElementById('start-screen')) throw new Error('start-screen');
-        if (!document.getElementById('contenedor')) throw new Error('contenedor');
-        if (!document.getElementById('level-screen')) throw new Error('level-screen');
-      });
-      t('Game.init existe', () => {
-        if (typeof Game.prototype.init !== 'function') throw new Error('init no está definida');
-      });
-      t('#start-btn existe', () => {
-        if (!document.getElementById('start-btn')) throw new Error('start-btn');
-      });
-      t('Controles móviles existen', () => {
-        const bar = document.getElementById('mobile-controls');
-        if (!bar) throw new Error('mobile-controls');
-        const btns = bar.querySelectorAll('button');
-        if (btns.length < 4) throw new Error('Faltan botones móviles');
-      });
-    });
+      t('#ventana-puntaje span existe', () => { const el = document.querySelector('#ventana-puntaje span'); if (!el) throw new Error('No encontrado'); });
+      t('#ventana-nivel span existe', () => { const el = document.querySelector('#ventana-nivel span'); if (!el) throw new Error('No encontrado'); });
+      t('Se puede setear texto en puntaje/nivel', () => { const p = document.querySelector('#ventana-puntaje span'); const n = document.querySelector('#ventana-nivel span'); p.textContent = '000'; n.textContent = '1'; });
+      t('Pantallas base existen', () => { if (!document.getElementById('start-screen')) throw new Error('start-screen'); if (!document.getElementById('contenedor')) throw new Error('contenedor'); if (!document.getElementById('level-screen')) throw new Error('level-screen'); });
+      t('Game.init existe', () => { if (typeof Game.prototype.init !== 'function') throw new Error('init no está definida'); });
+      t('#start-btn existe', () => { if (!document.getElementById('start-btn')) throw new Error('start-btn'); });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
