@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tetris Verbal</title>
   <style>
+    :root { --board-w: 400px; --board-h: calc(var(--board-w) * 1.375); }
     /* ======= Pantalla de inicio ======= */
     #start-screen {
       position: fixed;
@@ -83,7 +84,7 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      height: 100vh;
+      min-height: 100vh;
     }
     #contenedor {
       display: none;
@@ -135,10 +136,11 @@
 
     #campo-juego {
       position: relative;
-      width: 400px;
-      height: 550px;
+      width: var(--board-w);
+      height: var(--board-h);
       background: #e0e0e0;
       border: 2px solid #444;
+      box-sizing: border-box;
       overflow: hidden;
     }
     #conjugaciones {
@@ -250,6 +252,7 @@
     }
     /* Mostrar solo en pantallas táctiles o estrechas */
     @media (pointer: coarse), (max-width: 640px) {
+      :root { --board-w: min(96vw, 420px); }
       /* Evita scroll horizontal y apila el layout */
       html, body { overflow-x: hidden; }
       #contenedor { flex-direction: column; align-items: center; gap: 12px; margin-top: 10px; }
@@ -264,12 +267,8 @@
         gap: 8px;
       }
       #btn-interrumpir { grid-column: 1 / -1; }
-      /* Campo de juego escalable manteniendo proporción 400x550 */
-      #campo-juego {
-        width: min(96vw, 420px);
-        height: auto;
-        aspect-ratio: 400 / 550;
-      }
+      /* Campo de juego: dimensiones controladas por --board-w/--board-h */
+      #campo-juego { }
       /* Ajustes tipográficos y de controles */
       #header-datos { font-size: 11px; }
       .info-top span { font-size: 14px; }
@@ -592,7 +591,15 @@
       }
 
       // === Utilidades para distractores plausibles ===
-      stripDiacritics(s) { if (!s) return s; try { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ñ/g,'n').replace(/Ñ/g,'N'); } catch { return s; } }
+      stripDiacritics(s) {
+        if (!s) return s;
+        try {
+          return s.normalize('NFD')
+                   .replace(/[̀-ͯ]/g, '')
+                   .replace(/ñ/g,'n')
+                   .replace(/Ñ/g,'N');
+        } catch { return s; }
+      }
       regularizePresent(verbo, pIdx) {
         const lower = (verbo||'').toLowerCase();
         const group = lower.endsWith('ar') ? 'ar' : lower.endsWith('er') ? 'er' : lower.endsWith('ir') ? 'ir' : null;
@@ -696,7 +703,12 @@
           requestAnimationFrame(() => { const css = getComputedStyle(btn); const avail = btn.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight); const txtW = span.scrollWidth; const scale = Math.min(1, avail / txtW); span.style.transform = `scale(${scale})`; span.style.margin = '0 auto'; });
         });
         const bl = document.createElement('div'); bl.className = 'bloque'; bl.textContent = data.verbo; this.elems.campo.appendChild(bl);
-        this.bloqueW = 80; this.bloqueH = 40; this.posX = Math.floor((this.elems.campo.offsetWidth - this.bloqueW)/2); this.posY = 0;
+        const cw = this.elems.campo.offsetWidth;
+        this.bloqueW = Math.round(cw / 5);
+        this.bloqueH = Math.round(this.bloqueW / 2);
+        bl.style.width = `${this.bloqueW}px`;
+        bl.style.height = `${this.bloqueH}px`;
+        bl.style.lineHeight = `${this.bloqueH}px`; this.posX = Math.floor((this.elems.campo.offsetWidth - this.bloqueW)/2); this.posY = 0;
         bl.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; this.bloqueActual = bl; this.anim = requestAnimationFrame(() => this.animar());
       }
 
