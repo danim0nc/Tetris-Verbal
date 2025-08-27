@@ -61,8 +61,11 @@
     #level-screen, #end-screen, #confirm-exit { position: fixed; inset: 0; background: rgba(0,0,0,.85); color: #fff; display: none; align-items: center; justify-content: center; z-index: 900; text-align: center; padding: 1rem; }
     #level-screen span { font-size: 3rem; font-weight: 900; }
     #end-screen .box { background: #222; border: 2px solid #555; border-radius: 10px; padding: 1rem 1.2rem; max-width: 420px; }
+    #level-screen .box { background: #222; border: 2px solid #555; border-radius: 10px; padding: 1rem 1.2rem; max-width: 420px; }
     #end-screen table { border-collapse: collapse; margin: .75rem auto 0; font-size: .95rem; }
     #end-screen th, #end-screen td { border: 1px solid #fff; padding: .35rem .6rem; }
+    #level-diff { margin-top: .6rem; display: flex; flex-direction: column; gap: .35rem; align-items: center; }
+    .diff-pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); padding: .35rem .6rem; border-radius: 999px; font-size: .95rem; }
     .end-actions { display: flex; gap: .6rem; justify-content: center; margin-top: .8rem; }
     .btn { padding: .6rem 1rem; font-size: 1rem; border-radius: 10px; border: 2px solid #fff; background: #333; color: #fff; }
 
@@ -147,7 +150,12 @@
   </div>
 
   <!-- Overlays -->
-  <div id="level-screen"><span>NIVEL 1</span></div>
+  <div id="level-screen">
+    <div class="box">
+      <h2 id="level-title">NIVEL 1</h2>
+      <div id="level-diff"></div>
+    </div>
+  </div>
   <div id="end-screen">
     <div class="box">
       <div id="end-summary"></div>
@@ -374,7 +382,29 @@
       // Compat con claves spanish-verbs
       safeGet(verbo,mk,tk,p){ const attempts=[`${mk}_${tk}`]; if(mk==='SUBJUNCTIVE'&&tk==='IMPERFECT') attempts.push('SUBJUNCTIVE_IMPERFECT_SE','SUBJUNCTIVE_IMPERFECT_RA','SUBJUNCTIVE_IMPERFECT'); if(mk==='SUBJUNCTIVE'&&tk==='PLUPERFECT') attempts.push('SUBJUNCTIVE_PLUPERFECT','SUBJUNCTIVE_PAST_PERFECT'); if(mk==='CONDITIONAL'&&tk==='PRESENT') attempts.push('CONDITIONAL','CONDITIONAL_PRESENT'); if(mk==='INDICATIVE'&&tk==='PLUPERFECT') attempts.push('INDICATIVE_PLUPERFECT','INDICATIVE_PAST_PERFECT');
         for(const key of [...new Set(attempts)]){ try{const r=SpanishVerbs.getConjugation(verbo,key,p); if(r) return {r,key};}catch{} } return {r:null,key:attempts[0]}; }
-      stripAcc(s){ if(!s) return s; try{ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ñ/g,'n').replace(/Ñ/g,'N'); }catch{ return s; } }
+      stripAcc(s){ if(!s) return s; try{ return s.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ñ/g,'n').replace(/Ñ/g,'N'); }catch{ return s; } }
+
+      modeLabel(mk){
+        if(mk==='SUBJUNCTIVE') return 'subjuntivo';
+        if(mk==='CONDITIONAL') return 'condicional';
+        if(mk==='RANDOM') return 'mixto';
+        return 'indicativo';
+      }
+      timeLabel(mk, tk){
+        const map={PRESENT:'presente', IMPERFECT:'pretérito imperfecto', PRETERITE:'pretérito indefinido', FUTURE:'futuro', PERFECT:'pretérito perfecto', PLUPERFECT:'pretérito pluscuamperfecto', RANDOM:'mixto'};
+        if(mk==='SUBJUNCTIVE'){
+          if(tk==='PERFECT') return 'perfecto (subj.)';
+          if(tk==='FUTURE') return 'futuro (subj.)';
+          if(tk==='PRESENT') return 'presente (subj.)';
+          if(tk==='IMPERFECT') return 'imperfecto (subj.)';
+          if(tk==='PLUPERFECT') return 'pluscuamperfecto (subj.)';
+        }
+        if(mk==='CONDITIONAL'){
+          if(tk==='PRESENT') return 'condicional (simple)';
+          if(tk==='PERFECT') return 'condicional perfecto';
+        }
+        return map[tk]||tk?.toLowerCase?.()||'';
+      }catch{ return s; } }
 
       generarDatos(){ if(this.state.poolIdx>=this.state.poolVerbos.length) this.generarPool(); const verbo=this.state.poolVerbos[this.state.poolIdx++]; const def=this.state.levelDefs[this.state.nivel-1]||this.state.levelDefs.at(-1);
         let mk=def.modo, tk=def.tiempo; if(mk==='RANDOM'){ const moods=['INDICATIVE','SUBJUNCTIVE','CONDITIONAL']; mk=moods[Math.floor(Math.random()*moods.length)]; }
@@ -427,8 +457,36 @@
         if(this.posY < limitY){ this.posY += speed; this.updateBlock(); this.anim=requestAnimationFrame(()=>this.animar()); } else { this.land(limitY); }
       }
       land(y){ this.posY=y; this.updateBlock(); this.verificarImpacto(); }
-      verificarImpacto(){ const colW=this.elems.stage.clientWidth/4; const cx=this.posX + this.blockW/2; const idx=Math.floor(cx/colW); const btn=document.querySelectorAll('.opcion-conjugacion')[idx];
-        if(btn && btn.dataset.correcta==='true'){ this.state.puntaje += 100; this.setText(this.elems.puntaje, String(this.state.puntaje).padStart(3,'0')); this.bloque.remove(); this.state.usedCount++; this.nextStep(true); }
+      verificarImpacto(){
+        const colW = this.elems.stage.clientWidth/4;
+        const cx = this.posX + this.blockW/2;
+        const idx = Math.floor(cx/colW);
+        const btn = document.querySelectorAll('.opcion-conjugacion')[idx];
+        const statIdx = Math.max(0, (this.state.nivel||1) - 1);
+        if(btn && btn.dataset.correcta==='true'){
+          this.state.puntaje += 100;
+          this.setText(this.elems.puntaje, String(this.state.puntaje).padStart(3,'0'));
+          if (this.state.stats && this.state.stats[statIdx]) {
+            this.state.stats[statIdx].ok++;
+            this.state.stats[statIdx].puntos += 100;
+          }
+          this.bloque.remove();
+          this.state.usedCount++;
+          this.nextStep(true);
+        } else {
+          this.bloque.classList.add('fijo');
+          this.bloque.style.transform='';
+          this.bloque.style.left=this.posX+'px';
+          this.bloque.style.top=this.posY+'px';
+          this.state.fijos.push(this.bloque);
+          if (this.state.stats && this.state.stats[statIdx]) {
+            this.state.stats[statIdx].fail++;
+          }
+          this.state.usedCount++;
+          if(this.posY <= this.elems.header.clientHeight + 6) return this.end(false);
+          this.nextStep(false);
+        }
+      }
         else { this.bloque.classList.add('fijo'); this.bloque.style.transform=''; this.bloque.style.left=this.posX+'px'; this.bloque.style.top=this.posY+'px'; this.state.fijos.push(this.bloque); this.state.usedCount++; if(this.posY <= this.elems.header.clientHeight + 6) return this.end(false); this.nextStep(false); }
       }
       nextStep(ok){ const total=this.state.config.totalConj; if(this.state.usedCount>=total) return this.end(true);
@@ -436,9 +494,30 @@
         if(this.state.usedCount % 10 === 0){ this.state.nivel++; this.setText(this.elems.nivel, String(this.state.nivel)); this.showLevel(this.state.nivel); return; }
         this.bloque=null; cancelAnimationFrame(this.anim); this.crearBloque();
       }
-      showLevel(n) {
+      showLevel(n){
         const s = this.elems.levelScr;
-        s.querySelector('span').textContent = `NIVEL ${n}`;
+        const titleEl = s.querySelector('#level-title') || s.querySelector('h2') || s.querySelector('span');
+        const diffEl = s.querySelector('#level-diff');
+        if (titleEl) titleEl.textContent = `NIVEL ${n}`;
+        if (diffEl) {
+          const defs = this.state.levelDefs;
+          const curr = defs[Math.min(n-1, defs.length-1)] || {};
+          const prev = defs[n-2] || null;
+          const pills = [];
+          if (!prev) {
+            pills.push(`<div class="diff-pill">Modo: ${this.modeLabel(curr.modo||'INDICATIVE')}</div>`);
+            pills.push(`<div class="diff-pill">Tiempo: ${this.timeLabel(curr.modo||'INDICATIVE', curr.tiempo||'PRESENT')}</div>`);
+          } else {
+            if ((curr.modo||'') !== (prev.modo||'')) pills.push(`<div class=\"diff-pill\">Modo: ${this.modeLabel(prev.modo)} → ${this.modeLabel(curr.modo)}</div>`);
+            if ((curr.tiempo||'') !== (prev.tiempo||'')) pills.push(`<div class=\"diff-pill\">Tiempo: ${this.timeLabel(prev.modo, prev.tiempo)} → ${this.timeLabel(curr.modo, curr.tiempo)}</div>`);
+            if (!pills.length) pills.push(`<div class=\"diff-pill\">Sin cambios respecto al nivel anterior</div>`);
+          }
+          diffEl.innerHTML = pills.join('');
+        }
+        s.style.display = 'flex';
+        if (this.levelTimer) clearTimeout(this.levelTimer);
+        this.levelTimer = setTimeout(() => { s.style.display = 'none'; this.crearBloque(); }, 1200);
+      }`;
         s.style.display = 'flex';
         if (this.levelTimer) clearTimeout(this.levelTimer);
         this.levelTimer = setTimeout(() => {
@@ -456,9 +535,39 @@
         this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1');
         this.state.puntaje=0; this.state.nivel=1; this.state.usedCount=0;
         this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0;
+        this.generarPool();
+        // Inicializa estadísticas por nivel (10 conjugaciones por nivel)
+        const levelsCount = Math.max(1, Math.ceil((this.state.config.totalConj||0) / 10));
+        this.state.stats = Array.from({length: levelsCount}, (_,i) => {
+          const def = this.state.levelDefs[Math.min(i, this.state.levelDefs.length-1)] || { modo:'INDICATIVE', tiempo:'PRESENT' };
+          return { nivel: i+1, modo: this.modeLabel(def.modo), tiempo: this.timeLabel(def.modo, def.tiempo), ok: 0, fail: 0, puntos: 0 };
+        });
+        this.showLevel(1);
+      }
+        if (this.anim) { cancelAnimationFrame(this.anim); this.anim = null; }
+        if (this.bloque) { this.bloque.remove(); this.bloque = null; }
+        // Limpia cualquier bloque suelto/fijo en el stage
+        this.elems.stage.querySelectorAll('.bloque').forEach(b => b.remove());
+        this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1');
+        this.state.puntaje=0; this.state.nivel=1; this.state.usedCount=0;
+        this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0;
         this.generarPool(); this.showLevel(1);
       }
-      end(won){ cancelAnimationFrame(this.anim); const sum=this.elems.endSummary; sum.innerHTML = `<h2>${won?'¡Felicitaciones!':'¡Fin del juego!'}</h2><p>Puntuación: <strong>${this.state.puntaje}</strong></p>`; this.elems.endScr.style.display='flex'; this.elems.btnRestart.onclick=()=>{ this.elems.endScr.style.display='none'; this.resetGame(); }; this.elems.btnMainMenu.onclick=()=>this.returnToMenu(); }
+      end(won){
+        cancelAnimationFrame(this.anim);
+        const sum=this.elems.endSummary;
+        const total=this.state.puntaje;
+        // Tabla por nivel
+        let table='';
+        if (Array.isArray(this.state.stats) && this.state.stats.length) {
+          const rows = this.state.stats.map((s,i)=>`<tr><td>${i+1}</td><td>${s.modo}</td><td>${s.tiempo}</td><td>${s.ok}</td><td>${s.fail}</td><td>${s.puntos}</td></tr>`).join('');
+          table = `<table><thead><tr><th>Nivel</th><th>Modo</th><th>Tiempo</th><th>Aciertos</th><th>Errores</th><th>Puntos</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+        sum.innerHTML = `<h2>${won?'¡Felicitaciones!':'¡Fin del juego!'}</h2><p>Puntuación total: <strong>${total}</strong></p>${table}`;
+        this.elems.endScr.style.display='flex';
+        this.elems.btnRestart.onclick=()=>{ this.elems.endScr.style.display='none'; this.resetGame(); };
+        this.elems.btnMainMenu.onclick=()=>this.returnToMenu();
+      }</h2><p>Puntuación: <strong>${this.state.puntaje}</strong></p>`; this.elems.endScr.style.display='flex'; this.elems.btnRestart.onclick=()=>{ this.elems.endScr.style.display='none'; this.resetGame(); }; this.elems.btnMainMenu.onclick=()=>this.returnToMenu(); }
       returnToMenu(){
         if (this.levelTimer) { clearTimeout(this.levelTimer); this.levelTimer = null; }
         if (this.anim) { cancelAnimationFrame(this.anim); this.anim = null; }
