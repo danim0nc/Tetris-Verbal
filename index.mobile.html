@@ -42,7 +42,7 @@
 
     /* ======= Stage escalado ======= */
     #shell { position: relative; touch-action: none; }
-    #stage { position: relative; width: calc(var(--stage-w) * 1px); height: calc(var(--stage-h) * 1px); background: #e0e0e0; border: 2px solid #444; border-radius: 6px; overflow: hidden; }
+    #stage { position: relative; touch-action: none; width: calc(var(--stage-w) * 1px); height: calc(var(--stage-h) * 1px); background: #e0e0e0; border: 2px solid #444; border-radius: 6px; overflow: hidden; }
     #header-datos { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 6px 8px; background: #f0f0f0; border-bottom: 2px solid #444; font-size: 12px; font-weight: bold; z-index: 3; }
     .info-top { display: flex; flex-direction: column; align-items: center; flex: 1; padding: 2px; }
     .info-top span { font-size: 14px; font-weight: 600; margin-top: 2px; }
@@ -66,9 +66,7 @@
     .end-actions { display: flex; gap: .6rem; justify-content: center; margin-top: .8rem; }
     .btn { padding: .6rem 1rem; font-size: 1rem; border-radius: 10px; border: 2px solid #fff; background: #333; color: #fff; }
 
-    /* ======= Controles táctiles extra ======= */
-    #mobile-controls { width: 100%; max-width: 640px; display: flex; justify-content: center; gap: .6rem; padding: .6rem 0 1rem; }
-    #mobile-controls button { padding: .7rem .9rem; border: 2px solid #444; border-radius: 10px; background: #fff; font-size: 1.1rem; }
+    /* Controles por gestos: barra removida para una UI minimalista */
   </style>
 </head>
 <body>
@@ -129,9 +127,6 @@
     <div class="chip">PUNTAJE: <span id="puntaje">000</span></div>
     <div class="chip">NIVEL: <span id="nivel">1</span></div>
     <button id="btn-main">Menú</button>
-    <p style="text-align:center;margin:.5rem 0">
-      <a href="index.html">Volver a versión escritorio</a>
-    </p>
   </div>
 
   <!-- Escenario escalado -->
@@ -163,15 +158,7 @@
     </div>
   </div>
 
-  <!-- Controles extra -->
-  <div id="mobile-controls" aria-label="Controles móviles">
-    <button type="button" data-act="left">◀</button>
-    <button type="button" data-act="down">▼</button>
-    <button type="button" data-act="drop">⤓</button>
-    <button type="button" data-act="right">▶</button>
-  </div>
-
-  <script type="module">
+    <script type="module">
     import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
     window.SpanishVerbs = SpanishVerbs;
 
@@ -180,13 +167,13 @@
       const shell = document.getElementById('shell');
       const stage = document.getElementById('stage');
       const hud   = document.getElementById('hud');
-      const controls = document.getElementById('mobile-controls');
       const freeW = Math.min(window.innerWidth, 640); // límite ancho
-      const usedH = (hud?.offsetHeight || 0) + (controls?.offsetHeight || 0) + 24; // margencito
+      const usedH = (hud?.offsetHeight || 0) + 24; // margen superior/inferior // margencito
       const freeH = window.innerHeight - usedH;
       const sw = freeW / parseFloat(getComputedStyle(stage).width);
       const sh = freeH / parseFloat(getComputedStyle(stage).height);
       const s = Math.max(0.5, Math.min(sw, sh));
+      window.__stageScale = s;
       shell.style.transform = `scale(${s})`;
       shell.style.transformOrigin = 'top center';
       shell.style.width = `${parseFloat(getComputedStyle(stage).width) * s}px`;
@@ -245,20 +232,51 @@
           const go = (ev) => { ev?.preventDefault(); if (!this.bloque) return; this.moveToColumn(i); this.dropFast = true; };
           btn.addEventListener('click', go); btn.addEventListener('touchend', go, { passive: false });
         });
-        // controles extra
-        const bar = document.getElementById('mobile-controls');
-        if (bar) {
-          const step = 20;
-          const applyMove = (dx) => { if (!this.bloque) return; this.posX = Math.max(0, Math.min(this.posX + dx, this.elems.stage.clientWidth - this.blockW)); this.updateBlock(); };
-          bar.querySelector('[data-act="left"]').addEventListener('click', () => applyMove(-step));
-          bar.querySelector('[data-act="right"]').addEventListener('click', () => applyMove(step));
-          const down = bar.querySelector('[data-act="down"]'); const drop = bar.querySelector('[data-act="drop"]');
-          down.addEventListener('touchstart', () => this.accel = true, { passive: true });
-          down.addEventListener('touchend', () => this.accel = false);
-          down.addEventListener('mousedown', () => this.accel = true);
-          down.addEventListener('mouseup', () => this.accel = false);
-          drop.addEventListener('click', () => { this.dropFast = true; });
-        }
+        // gestos sobre el stage (arrastrar para mover, tap para alinear, swipe abajo para caída rápida)
+        const stage = this.elems.stage;
+        let touch = null;
+        const getTouch = (e) => {
+          if (!touch) return null;
+          for (const t of e.changedTouches) if (t.identifier === touch.id) return t;
+          return null;
+        };
+        stage.addEventListener('touchstart', (e) => {
+          if (!e.changedTouches.length) return;
+          const t = e.changedTouches[0];
+          touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved: false };
+        }, { passive: true });
+        stage.addEventListener('touchmove', (e) => {
+          const t = getTouch(e);
+          if (!t || !this.bloque) return;
+          const scale = window.__stageScale || 1;
+          const dxStage = (t.clientX - touch.lastX) / scale;
+          this.posX += dxStage;
+          const maxX = this.elems.stage.clientWidth - this.blockW;
+          this.posX = Math.max(0, Math.min(this.posX, maxX));
+          this.updateBlock();
+          touch.moved = true;
+          touch.lastX = t.clientX; touch.lastY = t.clientY;
+        }, { passive: true });
+        stage.addEventListener('touchend', (e) => {
+          const t = getTouch(e);
+          if (!t) return;
+          const dx = t.clientX - touch.startX;
+          const dy = t.clientY - touch.startY;
+          if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) {
+            this.dropFast = true; // swipe hacia abajo → caída rápida/instantánea
+          } else if (!touch.moved && this.bloque) {
+            // tap: alinear a la columna tocada
+            const rect = stage.getBoundingClientRect();
+            const scale = window.__stageScale || 1;
+            const localX = (t.clientX - rect.left) / scale;
+            const colW = this.elems.stage.clientWidth / 4;
+            const col = Math.floor(Math.max(0, Math.min(localX, this.elems.stage.clientWidth - 1)) / colW);
+            this.moveToColumn(col);
+            this.accel = true; setTimeout(() => this.accel = false, 200);
+          }
+          touch = null;
+        });
+
         // resize stage cuando aparece/oculta teclado, rotaciones, etc.
         window.addEventListener('orientationchange', () => setTimeout(fitStage, 300));
       }
