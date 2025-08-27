@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tetris Verbal — Móvil (beta)</title>
+  <style>
+    /* ======= Reset + Mobile-first layout ======= */
+    :root {
+      /* Dimensiones "virtuales" del tablero. La lógica usa estas medidas fijas (px). */
+      --stage-w: 400; /* px */
+      --stage-h: 550; /* px */
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #f7f7f7;
+      color: #111;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      min-height: 100svh; /* iOS barras dinámicas */
+    }
+
+    /* ======= Pantalla de inicio ======= */
+    #start-screen {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88); color: #fff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: .75rem; text-align: center; z-index: 1000; padding: 1rem;
+    }
+    #start-screen h1 { margin: 0; font-size: 2rem; }
+    #start-screen p { margin: 0 0 .5rem; opacity: .8; }
+    #start-screen .row { display: flex; gap: .5rem; align-items: center; justify-content: center; flex-wrap: wrap; }
+    #start-screen select, #start-screen input { font-size: 1rem; padding: .35rem .5rem; border-radius: 8px; border: 1px solid #666; }
+    #start-screen button { margin-top: .5rem; padding: .65rem 1.1rem; font-size: 1.05rem; border-radius: 10px; border: 2px solid #fff; background: #222; color: #fff; }
+    #custom-options { display: none; margin-top: .5rem; }
+
+    /* ======= HUD compacto ======= */
+    #hud { width: 100%; max-width: 640px; padding: .5rem .75rem; display: flex; gap: .5rem; justify-content: space-between; align-items: center; }
+    .chip { background: #fff; border: 1.5px solid #ddd; padding: .35rem .6rem; border-radius: 999px; font-weight: 700; min-width: 96px; text-align: center; }
+    #btn-main { padding: .45rem .7rem; border: 1.5px solid #222; border-radius: 10px; background: #fff; }
+
+    /* ======= Stage escalado ======= */
+    #shell { position: relative; touch-action: none; }
+    #stage { position: relative; width: calc(var(--stage-w) * 1px); height: calc(var(--stage-h) * 1px); background: #e0e0e0; border: 2px solid #444; border-radius: 6px; overflow: hidden; }
+    #header-datos { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 6px 8px; background: #f0f0f0; border-bottom: 2px solid #444; font-size: 12px; font-weight: bold; z-index: 3; }
+    .info-top { display: flex; flex-direction: column; align-items: center; flex: 1; padding: 2px; }
+    .info-top span { font-size: 14px; font-weight: 600; margin-top: 2px; }
+    #ventana-modo-top { border-radius: 6px; padding: 2px 4px; color: #fff; }
+
+    /* ======= Opciones al pie (4 columnas) ======= */
+    #conjugaciones { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px; background: #ddd; z-index: 2; }
+    .opcion-conjugacion { padding: 8px 6px; background: #fff; border: 2px solid #aaa; border-radius: 8px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; }
+    .opcion-conjugacion .texto-ajustable { display: inline-block; transform-origin: center center; white-space: nowrap; }
+
+    /* ======= Bloque ======= */
+    .bloque { position: absolute; width: 80px; height: 40px; background: #4CAF50; color: #fff; font-weight: 800; text-align: center; line-height: 40px; border-radius: 6px; z-index: 4; box-shadow: 0 2px 0 rgba(0,0,0,.2); }
+    .bloque.fijo { opacity: .6; background: #b71c1c; box-shadow: none; }
+
+    /* ======= Overlays ======= */
+    #level-screen, #end-screen { position: fixed; inset: 0; background: rgba(0,0,0,.85); color: #fff; display: none; align-items: center; justify-content: center; z-index: 900; text-align: center; padding: 1rem; }
+    #level-screen span { font-size: 3rem; font-weight: 900; }
+    #end-screen .box { background: #222; border: 2px solid #555; border-radius: 10px; padding: 1rem 1.2rem; max-width: 420px; }
+    #end-screen table { border-collapse: collapse; margin: .75rem auto 0; font-size: .95rem; }
+    #end-screen th, #end-screen td { border: 1px solid #fff; padding: .35rem .6rem; }
+    .end-actions { display: flex; gap: .6rem; justify-content: center; margin-top: .8rem; }
+    .btn { padding: .6rem 1rem; font-size: 1rem; border-radius: 10px; border: 2px solid #fff; background: #333; color: #fff; }
+
+    /* ======= Controles táctiles extra ======= */
+    #mobile-controls { width: 100%; max-width: 640px; display: flex; justify-content: center; gap: .6rem; padding: .6rem 0 1rem; }
+    #mobile-controls button { padding: .7rem .9rem; border: 2px solid #444; border-radius: 10px; background: #fff; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+  <!-- PANTALLA DE INICIO -->
+  <div id="start-screen">
+    <h1>Tetris Verbal</h1>
+    <p>Versión móvil (beta)</p>
+    <div class="row">
+      <label>Nivel:
+        <select id="menu-nivel">
+          <option value="easy">Fácil</option>
+          <option value="medium">Medio</option>
+          <option value="hard">Difícil</option>
+          <option value="custom">Personalizado</option>
+        </select>
+      </label>
+    </div>
+    <div id="custom-options">
+      <div class="row">
+        <label>Modo:
+          <select id="custom-modo">
+            <option value="INDICATIVE">Indicativo</option>
+            <option value="SUBJUNCTIVE">Subjuntivo</option>
+          </select>
+        </label>
+        <label>Tiempo:
+          <select id="custom-tiempo">
+            <option value="PRESENT">Presente</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" id="custom-subj-imp-wrapper" style="display:none;">
+        <label>Var. imp. subj.:
+          <select id="custom-subj-imp-var">
+            <option value="SE">-se</option>
+            <option value="RA">-ra</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Verbos:
+          <select id="custom-verbo-tipo">
+            <option value="all">Todos</option>
+            <option value="regular">Regulares</option>
+            <option value="irregular">Irregulares</option>
+          </select>
+        </label>
+        <label>Nº conj.:
+          <input type="number" id="custom-count" min="5" max="100" value="20" />
+        </label>
+      </div>
+    </div>
+    <button id="start-btn">Iniciar</button>
+  </div>
+
+  <!-- HUD superior -->
+  <div id="hud" aria-hidden="true">
+    <div class="chip">PUNTAJE: <span id="puntaje">000</span></div>
+    <div class="chip">NIVEL: <span id="nivel">1</span></div>
+    <button id="btn-main">Menú</button>
+  </div>
+
+  <!-- Escenario escalado -->
+  <div id="shell">
+    <div id="stage">
+      <div id="header-datos">
+        <div class="info-top" id="ventana-pronombre-top">PRONOMBRE<br><span>tú</span></div>
+        <div class="info-top" id="ventana-tiempo-top">TIEMPO VERBAL<br><span>presente</span></div>
+        <div class="info-top" id="ventana-modo-top">MODO<br><span>indicativo</span></div>
+      </div>
+      <div id="conjugaciones">
+        <button class="opcion-conjugacion" type="button">---</button>
+        <button class="opcion-conjugacion" type="button">---</button>
+        <button class="opcion-conjugacion" type="button">---</button>
+        <button class="opcion-conjugacion" type="button">---</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlays -->
+  <div id="level-screen"><span>NIVEL 1</span></div>
+  <div id="end-screen">
+    <div class="box">
+      <div id="end-summary"></div>
+      <div class="end-actions">
+        <button class="btn" id="btn-restart2">Reiniciar</button>
+        <button class="btn" id="btn-mainmenu">Menú principal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controles extra -->
+  <div id="mobile-controls" aria-label="Controles móviles">
+    <button type="button" data-act="left">◀</button>
+    <button type="button" data-act="down">▼</button>
+    <button type="button" data-act="drop">⤓</button>
+    <button type="button" data-act="right">▶</button>
+  </div>
+
+  <script type="module">
+    import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
+    window.SpanishVerbs = SpanishVerbs;
+
+    // Escala el #stage a la pantalla móvil manteniendo el sistema de coordenadas 400x550
+    function fitStage() {
+      const shell = document.getElementById('shell');
+      const stage = document.getElementById('stage');
+      const hud   = document.getElementById('hud');
+      const controls = document.getElementById('mobile-controls');
+      const freeW = Math.min(window.innerWidth, 640); // límite ancho
+      const usedH = (hud?.offsetHeight || 0) + (controls?.offsetHeight || 0) + 24; // margencito
+      const freeH = window.innerHeight - usedH;
+      const sw = freeW / parseFloat(getComputedStyle(stage).width);
+      const sh = freeH / parseFloat(getComputedStyle(stage).height);
+      const s = Math.max(0.5, Math.min(sw, sh));
+      shell.style.transform = `scale(${s})`;
+      shell.style.transformOrigin = 'top center';
+      shell.style.width = `${parseFloat(getComputedStyle(stage).width) * s}px`;
+      shell.style.height = `${parseFloat(getComputedStyle(stage).height) * s}px`;
+    }
+    window.addEventListener('resize', fitStage);
+
+    class GameMobile {
+      constructor() {
+        this.allIrregular = ["tener","ir","ser","hacer","decir","venir","estar","saber","querer","poder"];
+        this.allRegular   = ["hablar","comer","vivir","estudiar","trabajar","caminar","cantar","amar","bailar","mirar"];
+        this.pronombres   = ["yo","tú","él","nosotros","vosotros","ellos"];
+        this.state = {
+          config: {}, levelDefs: [], poolVerbos: [], poolIdx: 0,
+          usedCount: 0, puntaje: 0, nivel: 1, fijos: [], velocidadY: 1
+        };
+      }
+      init() {
+        this.cacheDOM();
+        this.setupListeners();
+        this.updateCustomTiempoOptions();
+        fitStage();
+      }
+      cacheDOM() {
+        const get = id => document.getElementById(id);
+        this.elems = {
+          start: get('start-screen'),
+          menuNivel: get('menu-nivel'),
+          customOpts: get('custom-options'),
+          startBtn: get('start-btn'),
+          selModo: get('custom-modo'), selTiempo: get('custom-tiempo'), subjImpWrapper: get('custom-subj-imp-wrapper'), subjImpVar: get('custom-subj-imp-var'),
+          selTipoVerbo: get('custom-verbo-tipo'), selCount: get('custom-count'),
+          hud: get('hud'), puntaje: get('puntaje'), nivel: get('nivel'),
+          shell: get('shell'), stage: get('stage'), header: get('header-datos'),
+          conj: get('conjugaciones'),
+          pronSpan: get('ventana-pronombre-top').querySelector('span'),
+          tiempoSpan: get('ventana-tiempo-top').querySelector('span'),
+          modoTop: get('ventana-modo-top'), modoSpan: get('ventana-modo-top').querySelector('span'),
+          levelScr: get('level-screen'), endScr: get('end-screen'), endSummary: get('end-summary'),
+          btnRestart: get('btn-restart2'), btnMainMenu: get('btn-mainmenu'), btnMain: get('btn-main')
+        };
+      }
+      setText(node, txt) { if (node) node.textContent = txt; }
+      setupListeners() {
+        this.elems.menuNivel.addEventListener('change', () => {
+          const isCustom = this.elems.menuNivel.value === 'custom';
+          this.elems.customOpts.style.display = isCustom ? 'block' : 'none';
+          if (isCustom) this.updateCustomTiempoOptions();
+        });
+        this.elems.startBtn.addEventListener('click', () => this.handleStart());
+        this.elems.btnMain.addEventListener('click', () => this.returnToMenu());
+        this.elems.selModo.addEventListener('change', () => this.updateCustomTiempoOptions());
+        this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
+        // táctiles: tap en opción → coloca bloque en esa columna y cae rápido
+        Array.from(document.querySelectorAll('.opcion-conjugacion')).forEach((btn, i) => {
+          const go = (ev) => { ev?.preventDefault(); if (!this.bloque) return; this.moveToColumn(i); this.dropFast = true; };
+          btn.addEventListener('click', go); btn.addEventListener('touchend', go, { passive: false });
+        });
+        // controles extra
+        const bar = document.getElementById('mobile-controls');
+        if (bar) {
+          const step = 20;
+          const applyMove = (dx) => { if (!this.bloque) return; this.posX = Math.max(0, Math.min(this.posX + dx, this.elems.stage.clientWidth - this.blockW)); this.updateBlock(); };
+          bar.querySelector('[data-act="left"]').addEventListener('click', () => applyMove(-step));
+          bar.querySelector('[data-act="right"]').addEventListener('click', () => applyMove(step));
+          const down = bar.querySelector('[data-act="down"]'); const drop = bar.querySelector('[data-act="drop"]');
+          down.addEventListener('touchstart', () => this.accel = true, { passive: true });
+          down.addEventListener('touchend', () => this.accel = false);
+          down.addEventListener('mousedown', () => this.accel = true);
+          down.addEventListener('mouseup', () => this.accel = false);
+          drop.addEventListener('click', () => { this.dropFast = true; });
+        }
+        // resize stage cuando aparece/oculta teclado, rotaciones, etc.
+        window.addEventListener('orientationchange', () => setTimeout(fitStage, 300));
+      }
+      updateCustomTiempoOptions() {
+        const modo = this.elems.selModo.value;
+        const sel = this.elems.selTiempo;
+        const make = (v,t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; return o; };
+        sel.innerHTML = '';
+        if (modo === 'SUBJUNCTIVE') {
+          [ ['PRESENT','Presente'], ['PERFECT','Pretérito perfecto'], ['IMPERFECT','Pretérito imperfecto'], ['PLUPERFECT','Pretérito pluscuamperfecto'], ['FUTURE','Futuro'] ].forEach(([v,t]) => sel.appendChild(make(v,t)));
+        } else {
+          [ ['PRESENT','Presente'], ['IMPERFECT','Pretérito imperfecto'], ['PRETERITE','Pretérito indefinido'], ['FUTURE','Futuro'], ['PERFECT','Pretérito perfecto'], ['PLUPERFECT','Pretérito pluscuamperfecto'] ].forEach(([v,t]) => sel.appendChild(make(v,t)));
+        }
+        this.updateSubjImpVisibility();
+      }
+      updateSubjImpVisibility() {
+        const isSubj = this.elems.selModo.value === 'SUBJUNCTIVE';
+        const t = this.elems.selTiempo.value; const show = isSubj && (t === 'IMPERFECT' || t === 'PLUPERFECT');
+        document.getElementById('custom-subj-imp-wrapper').style.display = show ? 'block' : 'none';
+      }
+      handleStart() {
+        const mode = this.elems.menuNivel.value; this.state.config.mode = mode;
+        if (mode === 'easy') this.setupEasy();
+        else if (mode === 'medium') this.setupMedium();
+        else if (mode === 'hard') this.setupHard();
+        else this.setupCustom();
+        this.elems.start.style.display = 'none';
+        this.elems.hud.setAttribute('aria-hidden', 'false');
+        this.resetGame();
+      }
+      setupEasy() {
+        this.state.config.totalConj = 40;
+        this.state.levelDefs = [
+          { modo:'INDICATIVE', tiempo:'PRESENT', type:'regular', typoCount:0 },
+          { modo:'INDICATIVE', tiempo:'PRESENT', type:'irregular', typoCount:1 },
+          { modo:'INDICATIVE', tiempo:'IMPERFECT', type:'all', typoCount:0 },
+          { modo:'INDICATIVE', tiempo:'PRETERITE', type:'all', typoCount:1 }
+        ];
+      }
+      setupMedium() {
+        this.state.config.totalConj = 40;
+        this.state.levelDefs = [
+          { modo:'INDICATIVE',tiempo:'PRESENT', type:'irregular', typoCount:2 },
+          { modo:'CONDITIONAL',tiempo:'PRESENT', type:'all', typoCount:1 },
+          { modo:'INDICATIVE',tiempo:'IMPERFECT', type:'irregular', typoCount:2 },
+          { modo:'SUBJUNCTIVE',tiempo:'PRESENT', type:'irregular', typoCount:2 }
+        ];
+      }
+      setupHard() {
+        this.state.config.totalConj = 40; this.state.levelDefs = [ { modo:'RANDOM', tiempo:'RANDOM', type:'all', typoCount:2 } ];
+      }
+      setupCustom() {
+        this.state.config.totalConj = parseInt(this.elems.selCount.value,10) || 20;
+        const onlyIrreg = this.elems.selTipoVerbo.value === 'irregular';
+        this.state.config.onlyIrreg = onlyIrreg;
+        this.state.config.custom = { modo: this.elems.selModo.value, tiempo: this.elems.selTiempo.value };
+        this.state.config.subjImpVar = (this.elems.subjImpVar && this.elems.subjImpVar.value) || 'SE';
+        this.state.levelDefs = [ { modo: this.elems.selModo.value, tiempo: this.elems.selTiempo.value, type: onlyIrreg?'irregular':'all', typoCount:2 } ];
+      }
+      shuffle(a){ const arr=a.slice(); for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+      generarPool(){ const def=this.state.levelDefs[this.state.nivel-1]||this.state.levelDefs.at(-1); let src; if(def.type==='regular')src=this.allRegular; else if(def.type==='irregular')src=this.allIrregular; else src=[...this.allRegular,...this.allIrregular]; this.state.poolVerbos=this.shuffle(src); this.state.poolIdx=0; }
+
+      // Compat con claves spanish-verbs
+      safeGet(verbo,mk,tk,p){ const attempts=[`${mk}_${tk}`]; if(mk==='SUBJUNCTIVE'&&tk==='IMPERFECT') attempts.push('SUBJUNCTIVE_IMPERFECT_SE','SUBJUNCTIVE_IMPERFECT_RA','SUBJUNCTIVE_IMPERFECT'); if(mk==='SUBJUNCTIVE'&&tk==='PLUPERFECT') attempts.push('SUBJUNCTIVE_PLUPERFECT','SUBJUNCTIVE_PAST_PERFECT'); if(mk==='CONDITIONAL'&&tk==='PRESENT') attempts.push('CONDITIONAL','CONDITIONAL_PRESENT'); if(mk==='INDICATIVE'&&tk==='PLUPERFECT') attempts.push('INDICATIVE_PLUPERFECT','INDICATIVE_PAST_PERFECT');
+        for(const key of [...new Set(attempts)]){ try{const r=SpanishVerbs.getConjugation(verbo,key,p); if(r) return {r,key};}catch{} } return {r:null,key:attempts[0]}; }
+      stripAcc(s){ if(!s) return s; try{ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ñ/g,'n').replace(/Ñ/g,'N'); }catch{ return s; } }
+
+      generarDatos(){ if(this.state.poolIdx>=this.state.poolVerbos.length) this.generarPool(); const verbo=this.state.poolVerbos[this.state.poolIdx++]; const def=this.state.levelDefs[this.state.nivel-1]||this.state.levelDefs.at(-1);
+        let mk=def.modo, tk=def.tiempo; if(mk==='RANDOM'){ const moods=['INDICATIVE','SUBJUNCTIVE','CONDITIONAL']; mk=moods[Math.floor(Math.random()*moods.length)]; }
+        if(tk==='RANDOM'){
+          const ind=['PRESENT','IMPERFECT','PRETERITE','FUTURE','PERFECT','PLUPERFECT']; const sub=['PRESENT','PERFECT','IMPERFECT','PLUPERFECT','FUTURE']; const cond=['PRESENT','PERFECT'];
+          tk = mk==='SUBJUNCTIVE' ? sub[Math.floor(Math.random()*sub.length)] : mk==='CONDITIONAL' ? cond[Math.floor(Math.random()*cond.length)] : ind[Math.floor(Math.random()*ind.length)];
+        }
+        if(mk==='SUBJUNCTIVE'&&tk==='IMPERFECT'){ tk=(this.state.config.subjImpVar||'SE')==='RA'?'IMPERFECT_RA':'IMPERFECT_SE'; }
+        if(mk==='SUBJUNCTIVE'&&tk==='PLUPERFECT'){ tk=(this.state.config.subjImpVar||'SE')==='RA'?'PLUPERFECT_RA':'PLUPERFECT_SE'; }
+        const pIdx=Math.floor(Math.random()*6); const {r:correcta,key:keyUsed}=this.safeGet(verbo,mk,tk,pIdx); if(!correcta) return this.generarDatos();
+        const modoLabel= mk==='SUBJUNCTIVE'?'subjuntivo': mk==='CONDITIONAL'?'condicional':'indicativo';
+        const tkEff = keyUsed.replace(`${mk}_`, '');
+        const map={PRESENT:'presente',IMPERFECT:'pretérito imperfecto',PRETERITE:'pretérito indefinido',FUTURE:'futuro',PERFECT:'pretérito perfecto',PLUPERFECT:'pretérito pluscuamperfecto'};
+        const tiempoLabel=(()=>{ if(mk==='SUBJUNCTIVE'){ if(tkEff.startsWith('IMPERFECT')) return tkEff.includes('RA')?'imperfecto de subjuntivo (-ra)':'imperfecto de subjuntivo (-se)'; if(tkEff.startsWith('PLUPERFECT')) return tkEff.includes('RA')?'pluscuamperfecto de subj. (-ra)':'pluscuamperfecto de subj. (-se)'; if(tkEff==='PERFECT') return 'perfecto de subjuntivo'; if(tkEff==='FUTURE') return 'futuro de subjuntivo'; if(tkEff==='PRESENT') return 'presente de subjuntivo'; } if(mk==='CONDITIONAL'){ if(tkEff==='PRESENT') return 'condicional (simple)'; if(tkEff==='PERFECT') return 'condicional perfecto'; } return map[tkEff]||tkEff.toLowerCase(); })();
+        const pronombre=this.pronombres[pIdx];
+        // Distractores: otras personas del mismo tiempo + sin acentos + typo leve
+        const set=new Set(); const add=v=>{ if(v&&v!==correcta) set.add(v); };
+        const others=this.shuffle([0,1,2,3,4,5].filter(i=>i!==pIdx));
+        for(const i of others){ try{ add(SpanishVerbs.getConjugation(verbo,keyUsed,i)); }catch{} if(set.size>=2) break; }
+        const noAcc=this.stripAcc(correcta); if(noAcc!==correcta) add(noAcc);
+        if(set.size<3){ // typo *muy* leve
+          const i=Math.max(0,Math.min(correcta.length-1,2)); const alt=correcta.slice(0,i)+'e'+correcta.slice(i+1); add(alt);
+        }
+        const opciones=this.shuffle([...set, correcta]).slice(0,4);
+        return { verbo, pronombre, modo:modoLabel, tiempo:tiempoLabel, correcta, opciones };
+      }
+
+      // ======= Juego =======
+      moveToColumn(col){ const colW=this.elems.stage.clientWidth/4; this.posX=Math.round(col*colW + colW/2 - this.blockW/2); this.updateBlock(); }
+      updateBlock(){ if(!this.bloque) return; const maxX=this.elems.stage.clientWidth - this.blockW; this.posX=Math.max(0,Math.min(this.posX,maxX)); this.bloque.style.transform=`translate3d(${this.posX}px,${this.posY}px,0)`; }
+
+      crearBloque(){ this.dropFast=false; const data=this.generarDatos(); if(!data) return;
+        this.setText(this.elems.pronSpan,data.pronombre); this.setText(this.elems.tiempoSpan,data.tiempo); this.setText(this.elems.modoSpan,data.modo);
+        let color = '#4CAF50'; if (data.modo === 'subjuntivo') color = '#b71c1c'; else if (data.modo === 'condicional') color = '#2196F3'; this.elems.modoTop.style.backgroundColor=color;
+        // opciones
+        const btns=this.elems.conjBtns = Array.from(document.querySelectorAll('.opcion-conjugacion'));
+        btns.forEach((btn,i)=>{ btn.innerHTML=''; const span=document.createElement('span'); span.className='texto-ajustable'; span.textContent=data.opciones[i]||'---'; btn.appendChild(span); btn.dataset.correcta = (data.opciones[i]===data.correcta);
+          requestAnimationFrame(()=>{ const css=getComputedStyle(btn); const avail=btn.clientWidth - parseFloat(css.paddingLeft) - parseFloat(css.paddingRight); const txtW=span.scrollWidth; const scale=Math.min(1,avail/txtW); span.style.transform=`scale(${scale})`; span.style.margin='0 auto'; });
+        });
+        // bloque
+        const bl=document.createElement('div'); bl.className='bloque'; bl.textContent=data.verbo; this.elems.stage.appendChild(bl); this.bloque=bl;
+        this.blockW=80; this.blockH=40; bl.style.width=this.blockW+'px'; bl.style.height=this.blockH+'px'; bl.style.lineHeight=this.blockH+'px';
+        this.posX = Math.floor((this.elems.stage.clientWidth - this.blockW)/2); this.posY= this.elems.header.clientHeight + 6;
+        this.updateBlock(); this.anim = requestAnimationFrame(()=>this.animar());
+      }
+      animar(){ if(!this.bloque) return; const limitY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4; // 4px colchón
+        // check colisiones con fijos (básico)
+        for(const f of this.state.fijos){ const x=f.offsetLeft, y=f.offsetTop; if(this.posX < x+this.blockW && this.posX+this.blockW > x && this.posY+this.blockH >= y && this.posY < y){ this.land(y - this.blockH); return; } }
+        const speed = this.dropFast ? this.state.velocidadY*12 : this.accel ? this.state.velocidadY*4 : this.state.velocidadY;
+        if(this.posY < limitY){ this.posY += speed; this.updateBlock(); this.anim=requestAnimationFrame(()=>this.animar()); } else { this.land(limitY); }
+      }
+      land(y){ this.posY=y; this.updateBlock(); this.verificarImpacto(); }
+      verificarImpacto(){ const colW=this.elems.stage.clientWidth/4; const cx=this.posX + this.blockW/2; const idx=Math.floor(cx/colW); const btn=document.querySelectorAll('.opcion-conjugacion')[idx];
+        if(btn && btn.dataset.correcta==='true'){ this.state.puntaje += 100; this.setText(this.elems.puntaje, String(this.state.puntaje).padStart(3,'0')); this.bloque.remove(); this.state.usedCount++; this.nextStep(true); }
+        else { this.bloque.classList.add('fijo'); this.bloque.style.transform=''; this.bloque.style.left=this.posX+'px'; this.bloque.style.top=this.posY+'px'; this.state.fijos.push(this.bloque); this.state.usedCount++; if(this.posY <= this.elems.header.clientHeight + 6) return this.end(false); this.nextStep(false); }
+      }
+      nextStep(ok){ const total=this.state.config.totalConj; if(this.state.usedCount>=total) return this.end(true);
+        // sin niveles complejos en móvil: solo marcador de nivel cada 10
+        if(this.state.usedCount % 10 === 0){ this.state.nivel++; this.setText(this.elems.nivel, String(this.state.nivel)); this.showLevel(this.state.nivel); return; }
+        this.bloque=null; cancelAnimationFrame(this.anim); this.crearBloque();
+      }
+      showLevel(n){ const s=this.elems.levelScr; s.querySelector('span').textContent = `NIVEL ${n}`; s.style.display='flex'; setTimeout(()=>{ s.style.display='none'; this.crearBloque(); }, 1000); }
+
+      resetGame(){ this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1'); this.state.puntaje=0; this.state.nivel=1; this.state.usedCount=0; this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0; this.generarPool(); this.showLevel(1); }
+      end(won){ cancelAnimationFrame(this.anim); const sum=this.elems.endSummary; sum.innerHTML = `<h2>${won?'¡Felicitaciones!':'¡Fin del juego!'}</h2><p>Puntuación: <strong>${this.state.puntaje}</strong></p>`; this.elems.endScr.style.display='flex'; this.elems.btnRestart.onclick=()=>{ this.elems.endScr.style.display='none'; this.resetGame(); }; this.elems.btnMainMenu.onclick=()=>this.returnToMenu(); }
+      returnToMenu(){ cancelAnimationFrame(this.anim); this.elems.endScr.style.display='none'; this.elems.start.style.display='flex'; this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1'); this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0; }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fitStage();
+      const game = new GameMobile();
+      game.init();
+    });
+  </script>
+</body>
+</html>
