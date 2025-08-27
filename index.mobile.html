@@ -228,7 +228,76 @@
           exitConfirm: get('confirm-exit'), btnConfirmExit: get('btn-confirm-exit'), btnCancelExit: get('btn-cancel-exit')
         };
       }
-      setText(node, txt) { if (node) node.textContent = txt; }$1
+      setText(node, txt) { if (node) node.textContent = txt; }
+
+      setupListeners() {
+        // Mostrar opciones personalizadas si corresponde
+        this.elems.menuNivel.addEventListener('change', () => {
+          const isCustom = this.elems.menuNivel.value === 'custom';
+          this.elems.customOpts.style.display = isCustom ? 'block' : 'none';
+          if (isCustom) this.updateCustomTiempoOptions();
+        });
+        // Iniciar juego
+        this.elems.startBtn.addEventListener('click', () => this.handleStart());
+        // Botón menú → confirmación de salida
+        this.elems.btnMain.addEventListener('click', () => this.requestExitConfirm());
+        if (this.elems.btnConfirmExit) this.elems.btnConfirmExit.addEventListener('click', () => this.exitConfirmChoice(true));
+        if (this.elems.btnCancelExit)  this.elems.btnCancelExit.addEventListener('click', () => this.exitConfirmChoice(false));
+        // Cambios en selects personalizados
+        this.elems.selModo.addEventListener('change', () => this.updateCustomTiempoOptions());
+        this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
+        // Tap en opciones → mover a columna y caída rápida
+        Array.from(document.querySelectorAll('.opcion-conjugacion')).forEach((btn, i) => {
+          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloque) return; this.moveToColumn(i); this.dropFast = true; };
+          btn.addEventListener('click', go);
+          btn.addEventListener('touchend', go, { passive: false });
+        });
+        // Gestos en el stage (drag para mover, swipe abajo para caer, tap para alinear)
+        const stage = this.elems.stage;
+        let touch = null;
+        const getTouch = (e) => {
+          if (!touch) return null;
+          for (const t of e.changedTouches) if (t.identifier === touch.id) return t;
+          return null;
+        };
+        stage.addEventListener('touchstart', (e) => {
+          if (!e.changedTouches.length) return;
+          const t = e.changedTouches[0];
+          touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved: false };
+        }, { passive: true });
+        stage.addEventListener('touchmove', (e) => {
+          const t = getTouch(e);
+          if (!t || !this.bloque) return;
+          const scale = window.__stageScale || 1;
+          const dxStage = (t.clientX - touch.lastX) / scale;
+          this.posX += dxStage;
+          const maxX = this.elems.stage.clientWidth - this.blockW;
+          this.posX = Math.max(0, Math.min(this.posX, maxX));
+          this.updateBlock();
+          touch.moved = true;
+          touch.lastX = t.clientX; touch.lastY = t.clientY;
+        }, { passive: true });
+        stage.addEventListener('touchend', (e) => {
+          const t = getTouch(e);
+          if (!t) return;
+          const dx = t.clientX - touch.startX;
+          const dy = t.clientY - touch.startY;
+          if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) {
+            this.dropFast = true;
+          } else if (!touch.moved && this.bloque) {
+            const rect = stage.getBoundingClientRect();
+            const scale = window.__stageScale || 1;
+            const localX = (t.clientX - rect.left) / scale;
+            const colW = this.elems.stage.clientWidth / 4;
+            const col = Math.floor(Math.max(0, Math.min(localX, this.elems.stage.clientWidth - 1)) / colW);
+            this.moveToColumn(col);
+            this.accel = true; setTimeout(() => this.accel = false, 200);
+          }
+          touch = null;
+        });
+        // Recalcular escala tras cambios de orientación
+        window.addEventListener('orientationchange', () => setTimeout(fitStage, 300));
+      }
       requestExitConfirm(){
         this._wasRunning = !!this.anim;
         if (this.levelTimer) { clearTimeout(this.levelTimer); this.levelTimer = null; }
@@ -367,7 +436,16 @@
         if(this.state.usedCount % 10 === 0){ this.state.nivel++; this.setText(this.elems.nivel, String(this.state.nivel)); this.showLevel(this.state.nivel); return; }
         this.bloque=null; cancelAnimationFrame(this.anim); this.crearBloque();
       }
-      showLevel(n){ const s=this.elems.levelScr; s.querySelector('span').textContent = `NIVEL ${n}`; s.style.display='flex'; if (this.levelTimer) clearTimeout(this.levelTimer); this.levelTimer = setTimeout(()=>{ s.style.display='none'; this.crearBloque(); }, 1000); }`; s.style.display='flex'; setTimeout(()=>{ s.style.display='none'; this.crearBloque(); }, 1000); }
+      showLevel(n) {
+        const s = this.elems.levelScr;
+        s.querySelector('span').textContent = `NIVEL ${n}`;
+        s.style.display = 'flex';
+        if (this.levelTimer) clearTimeout(this.levelTimer);
+        this.levelTimer = setTimeout(() => {
+          s.style.display = 'none';
+          this.crearBloque();
+        }, 1000);
+      }
 
       resetGame(){
         if (this.levelTimer) { clearTimeout(this.levelTimer); this.levelTimer = null; }
