@@ -643,6 +643,11 @@
           this.state.usedCount++;
           this.nextStep(true);
         } else {
+          const maxFixedY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4;
+          if (this.posY > maxFixedY) {
+            this.posY = maxFixedY;
+            this.updateBlock();
+          }
           this.bloque.classList.add('fijo');
           this.bloque.style.transform='';
           this.bloque.style.left=this.posX+'px';

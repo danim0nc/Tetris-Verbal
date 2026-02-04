@@ -826,8 +826,11 @@
         if (btn && btn.dataset.correcta === 'true') {
           this.state.puntaje += 100; this.setText(this.elems.puntajeSpan, String(this.state.puntaje).padStart(3,'0')); this.bloqueActual.remove(); this.state.stats[this.state.nivel-1].ok++;
         } else {
-          this.bloqueActual.classList.add('fijo'); this.bloqueActual.style.transform = ''; this.bloqueActual.style.left = `${this.posX}px`; this.bloqueActual.style.top  = `${limitY}px`;
-          this.state.fijos.push(this.bloqueActual); if (limitY <= 10) return this.finJuego(); this.state.stats[this.state.nivel-1].fail++;
+          const conjTop = this.elems.campo.offsetHeight - this.elems.conjugaciones.offsetHeight;
+          const maxFixedY = conjTop - this.bloqueH;
+          const finalY = Math.min(limitY, maxFixedY);
+          this.bloqueActual.classList.add('fijo'); this.bloqueActual.style.transform = ''; this.bloqueActual.style.left = `${this.posX}px`; this.bloqueActual.style.top  = `${finalY}px`;
+          this.state.fijos.push(this.bloqueActual); if (finalY <= 10) return this.finJuego(); this.state.stats[this.state.nivel-1].fail++;
         }
         this.state.usedCount++;
         if (this.state.usedCount >= this.state.config.totalConj) return this.win();
