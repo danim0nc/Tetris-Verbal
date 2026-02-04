@@ -419,7 +419,7 @@
       </div>
       <button id="start-btn">Iniciar</button>
       <p style="margin-top:.5rem">
-        <a href="index-mobile.html" style="color:#e2e8f0; text-decoration:none;">Ir a la versión móvil</a>
+        <a href="index.mobile.html" style="color:#e2e8f0; text-decoration:none;">Ir a la versión móvil</a>
       </p>
     </div>
   </div>
@@ -479,6 +479,11 @@
   </div>
 
   <script type="module">
+    const isMobileDevice = () => window.matchMedia('(pointer: coarse)').matches
+      || /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice() && !window.location.pathname.endsWith('index.mobile.html')) {
+      window.location.href = 'index.mobile.html';
+    }
     import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
     window.SpanishVerbs = SpanishVerbs;
 
