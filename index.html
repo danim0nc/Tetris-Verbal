@@ -187,12 +187,34 @@
       position: relative;
       width: var(--board-w);
       height: var(--board-h);
-      background: linear-gradient(180deg, #f8fafc, #e2e8f0 60%);
-      border: 2px solid rgba(51, 65, 85, 0.5);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 48%),
+        linear-gradient(180deg, #f8fafc 0%, #e2e8f0 60%, #dbeafe 100%);
+      border: 2px solid rgba(51, 65, 85, 0.55);
       border-radius: 16px;
-      box-shadow: 0 24px 40px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 24px 40px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.75);
       box-sizing: border-box;
       overflow: hidden;
+    }
+    #campo-juego::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to right, rgba(148, 163, 184, 0.18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+      background-size: calc(100% / 4) calc(100% / 12);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #campo-juego::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.12) 70%, rgba(15, 23, 42, 0.18) 100%);
+      pointer-events: none;
+      z-index: 0;
     }
     #conjugaciones {
       position: absolute;
@@ -200,32 +222,34 @@
       width: 100%;
       display: flex;
       justify-content: space-between;
-      padding: 10px 12px;
-      background: rgba(226, 232, 240, 0.95);
-      border-top: 1px solid rgba(148, 163, 184, 0.6);
-      z-index: 1;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, rgba(241, 245, 249, 0.98), rgba(226, 232, 240, 0.98));
+      border-top: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 -10px 20px rgba(15, 23, 42, 0.12);
+      z-index: 2;
       box-sizing: border-box;
+      backdrop-filter: blur(6px);
     }
     .opcion-conjugacion {
       flex: 1;
       margin: 0 5px;
-      padding: 8px;
+      padding: 9px 8px;
       min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+      background: linear-gradient(135deg, #ffffff, #f8fafc);
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.14);
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-      border-radius: 10px;
+      border-radius: 12px;
       user-select: none;
       overflow: hidden;
       transition: transform .15s ease, box-shadow .2s ease;
     }
-    .opcion-conjugacion:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18); }
+    .opcion-conjugacion:hover { transform: translateY(-1px); box-shadow: 0 14px 22px rgba(15, 23, 42, 0.2); }
     .opcion-conjugacion:focus { outline: 3px solid #2196F3; }
     .texto-ajustable {
       display: inline-block;
@@ -241,10 +265,16 @@
       text-align: center;
       line-height: 40px;
       border-radius: 10px;
-      box-shadow: 0 10px 16px rgba(22, 101, 52, 0.3);
-      z-index: 2;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 12px 18px rgba(22, 101, 52, 0.28), inset 0 -2px 6px rgba(15, 23, 42, 0.3);
+      z-index: 3;
     }
-    .bloque.fijo { opacity: 0.6; background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: none; }
+    .bloque.fijo {
+      opacity: 0.85;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 8px 14px rgba(127, 29, 29, 0.4), inset 0 -2px 6px rgba(15, 23, 42, 0.35);
+    }
     #mensaje {
       position: absolute;
       top: 40%; left: 50%;
