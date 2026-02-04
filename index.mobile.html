@@ -10,13 +10,15 @@
       /* Dimensiones "virtuales" del tablero. La lógica usa estas medidas fijas (px). */
       --stage-w: 400; /* px */
       --stage-h: 550; /* px */
+      --accent: #38bdf8;
+      --accent-2: #a855f7;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      background: #f7f7f7;
-      color: #111;
+      font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(140deg, #f8fafc, #e2e8f0 60%, #cbd5f5 100%);
+      color: #0f172a;
       display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
       min-height: 100svh; /* iOS barras dinámicas */
     }
@@ -24,50 +26,185 @@
     /* ======= Pantalla de inicio ======= */
     #start-screen {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.88); color: #fff;
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.25), transparent 45%),
+                  radial-gradient(circle at bottom, rgba(168, 85, 247, 0.25), transparent 50%),
+                  rgba(2, 6, 23, 0.92);
+      color: #fff;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: .75rem; text-align: center; z-index: 1000; padding: 1rem;
     }
-    #start-screen h1 { margin: 0; font-size: 2rem; }
-    #start-screen p { margin: 0 0 .5rem; opacity: .8; }
+    #start-screen::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255,255,255,0.08), transparent 40%);
+      pointer-events: none;
+    }
+    #start-card {
+      position: relative;
+      z-index: 1;
+      width: min(420px, 92vw);
+      padding: 1.6rem 1.5rem;
+      border-radius: 18px;
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    }
+    #start-screen h1 { margin: 0; font-size: 2rem; letter-spacing: .04em; }
+    #start-screen p { margin: .2rem 0 .8rem; opacity: .85; }
     #start-screen .row { display: flex; gap: .5rem; align-items: center; justify-content: center; flex-wrap: wrap; }
-    #start-screen select, #start-screen input { font-size: 1rem; padding: .35rem .5rem; border-radius: 8px; border: 1px solid #666; }
-    #start-screen button { margin-top: .5rem; padding: .65rem 1.1rem; font-size: 1.05rem; border-radius: 10px; border: 2px solid #fff; background: #222; color: #fff; }
+    #start-screen select, #start-screen input {
+      font-size: 1rem;
+      padding: .35rem .5rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.8);
+      color: #fff;
+    }
+    #start-screen button {
+      margin-top: .5rem;
+      padding: .65rem 1.3rem;
+      font-size: 1.05rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #0f172a;
+      box-shadow: 0 10px 24px rgba(56, 189, 248, 0.35);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    #start-screen button:active { transform: translateY(1px); }
     #custom-options { display: none; margin-top: .5rem; }
 
     /* ======= HUD compacto ======= */
     #hud { width: 100%; max-width: 640px; padding: .5rem .75rem; display: flex; gap: .5rem; justify-content: space-between; align-items: center; }
-    .chip { background: #fff; border: 1.5px solid #ddd; padding: .35rem .6rem; border-radius: 999px; font-weight: 700; min-width: 96px; text-align: center; }
-    #btn-main { padding: .45rem .7rem; border: 1.5px solid #222; border-radius: 10px; background: #fff; }
+    .chip {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      padding: .35rem .6rem;
+      border-radius: 999px;
+      font-weight: 700;
+      min-width: 96px;
+      text-align: center;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+    }
+    #btn-main {
+      padding: .45rem .7rem;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+    }
 
     /* ======= Stage escalado ======= */
     #shell { position: relative; touch-action: none; }
-    #stage { position: relative; touch-action: none; width: calc(var(--stage-w) * 1px); height: calc(var(--stage-h) * 1px); background: #e0e0e0; border: 2px solid #444; border-radius: 6px; overflow: hidden; }
-    #header-datos { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 6px 8px; background: #f0f0f0; border-bottom: 2px solid #444; font-size: 12px; font-weight: bold; z-index: 3; }
+    #stage {
+      position: relative;
+      touch-action: none;
+      width: calc(var(--stage-w) * 1px);
+      height: calc(var(--stage-h) * 1px);
+      background: linear-gradient(180deg, #f8fafc, #e2e8f0 60%);
+      border: 2px solid rgba(51, 65, 85, 0.5);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 22px 36px rgba(15, 23, 42, 0.18);
+    }
+    #header-datos {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 8px;
+      background: rgba(248, 250, 252, 0.95);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 12px;
+      font-weight: bold;
+      z-index: 3;
+      backdrop-filter: blur(6px);
+    }
     .info-top { display: flex; flex-direction: column; align-items: center; flex: 1; padding: 2px; }
     .info-top span { font-size: 14px; font-weight: 600; margin-top: 2px; }
-    #ventana-modo-top { border-radius: 6px; padding: 2px 4px; color: #fff; }
+    #ventana-modo-top { border-radius: 999px; padding: 2px 6px; color: #fff; background: linear-gradient(135deg, #38bdf8, #a855f7); }
 
     /* ======= Opciones al pie (4 columnas) ======= */
-    #conjugaciones { position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px; background: #ddd; z-index: 2; }
-    .opcion-conjugacion { padding: 8px 6px; background: #fff; border: 2px solid #aaa; border-radius: 8px; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; }
+    #conjugaciones {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 8px;
+      background: rgba(226, 232, 240, 0.95);
+      border-top: 1px solid rgba(148, 163, 184, 0.6);
+      z-index: 2;
+    }
+    .opcion-conjugacion {
+      padding: 8px 6px;
+      background: #fff;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      overflow: hidden;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    }
     .opcion-conjugacion .texto-ajustable { display: inline-block; transform-origin: center center; white-space: nowrap; }
 
     /* ======= Bloque ======= */
-    .bloque { position: absolute; width: 80px; height: 40px; background: #4CAF50; color: #fff; font-weight: 800; text-align: center; line-height: 40px; border-radius: 6px; z-index: 4; box-shadow: 0 2px 0 rgba(0,0,0,.2); }
-    .bloque.fijo { opacity: .6; background: #b71c1c; box-shadow: none; }
+    .bloque {
+      position: absolute;
+      width: 80px;
+      height: 40px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      font-weight: 800;
+      text-align: center;
+      line-height: 40px;
+      border-radius: 10px;
+      z-index: 4;
+      box-shadow: 0 10px 16px rgba(22, 101, 52, 0.3);
+    }
+    .bloque.fijo { opacity: .6; background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: none; }
 
     /* ======= Overlays ======= */
-    #level-screen, #end-screen, #confirm-exit { position: fixed; inset: 0; background: rgba(0,0,0,.85); color: #fff; display: none; align-items: center; justify-content: center; z-index: 900; text-align: center; padding: 1rem; }
+    #level-screen, #end-screen, #confirm-exit {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.88);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 900;
+      text-align: center;
+      padding: 1rem;
+    }
     #level-screen span { font-size: 3rem; font-weight: 900; }
-    #end-screen .box { background: #222; border: 2px solid #555; border-radius: 10px; padding: 1rem 1.2rem; max-width: 420px; }
-    #level-screen .box { background: #222; border: 2px solid #555; border-radius: 10px; padding: 1rem 1.2rem; max-width: 420px; }
+    #end-screen .box,
+    #level-screen .box {
+      background: #0f172a;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      max-width: 420px;
+      box-shadow: 0 16px 30px rgba(0, 0, 0, 0.4);
+    }
     #end-screen table { border-collapse: collapse; margin: .75rem auto 0; font-size: .95rem; }
     #end-screen th, #end-screen td { border: 1px solid #fff; padding: .35rem .6rem; }
     #level-diff { margin-top: .6rem; display: flex; flex-direction: column; gap: .35rem; align-items: center; }
     .diff-pill { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); padding: .35rem .6rem; border-radius: 999px; font-size: .95rem; }
     .end-actions { display: flex; gap: .6rem; justify-content: center; margin-top: .8rem; }
-    .btn { padding: .6rem 1rem; font-size: 1rem; border-radius: 10px; border: 2px solid #fff; background: #333; color: #fff; }
+    .btn {
+      padding: .6rem 1rem;
+      font-size: 1rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: #111827;
+      color: #fff;
+    }
 
     /* Controles por gestos: barra removida para una UI minimalista */
   </style>
@@ -75,54 +212,56 @@
 <body>
   <!-- PANTALLA DE INICIO -->
   <div id="start-screen">
-    <h1>Tetris Verbal</h1>
-    <p>Versión móvil (beta)</p>
-    <div class="row">
-      <label>Nivel:
-        <select id="menu-nivel">
-          <option value="easy">Fácil</option>
-          <option value="medium">Medio</option>
-          <option value="hard">Difícil</option>
-          <option value="custom">Personalizado</option>
-        </select>
-      </label>
-    </div>
-    <div id="custom-options">
+    <div id="start-card">
+      <h1>Tetris Verbal</h1>
+      <p>Versión móvil (beta)</p>
       <div class="row">
-        <label>Modo:
-          <select id="custom-modo">
-            <option value="INDICATIVE">Indicativo</option>
-            <option value="SUBJUNCTIVE">Subjuntivo</option>
-          </select>
-        </label>
-        <label>Tiempo:
-          <select id="custom-tiempo">
-            <option value="PRESENT">Presente</option>
+        <label>Nivel:
+          <select id="menu-nivel">
+            <option value="easy">Fácil</option>
+            <option value="medium">Medio</option>
+            <option value="hard">Difícil</option>
+            <option value="custom">Personalizado</option>
           </select>
         </label>
       </div>
-      <div class="row" id="custom-subj-imp-wrapper" style="display:none;">
-        <label>Var. imp. subj.:
-          <select id="custom-subj-imp-var">
-            <option value="SE">-se</option>
-            <option value="RA">-ra</option>
-          </select>
-        </label>
+      <div id="custom-options">
+        <div class="row">
+          <label>Modo:
+            <select id="custom-modo">
+              <option value="INDICATIVE">Indicativo</option>
+              <option value="SUBJUNCTIVE">Subjuntivo</option>
+            </select>
+          </label>
+          <label>Tiempo:
+            <select id="custom-tiempo">
+              <option value="PRESENT">Presente</option>
+            </select>
+          </label>
+        </div>
+        <div class="row" id="custom-subj-imp-wrapper" style="display:none;">
+          <label>Var. imp. subj.:
+            <select id="custom-subj-imp-var">
+              <option value="SE">-se</option>
+              <option value="RA">-ra</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label>Verbos:
+            <select id="custom-verbo-tipo">
+              <option value="all">Todos</option>
+              <option value="regular">Regulares</option>
+              <option value="irregular">Irregulares</option>
+            </select>
+          </label>
+          <label>Nº conj.:
+            <input type="number" id="custom-count" min="5" max="100" value="20" />
+          </label>
+        </div>
       </div>
-      <div class="row">
-        <label>Verbos:
-          <select id="custom-verbo-tipo">
-            <option value="all">Todos</option>
-            <option value="regular">Regulares</option>
-            <option value="irregular">Irregulares</option>
-          </select>
-        </label>
-        <label>Nº conj.:
-          <input type="number" id="custom-count" min="5" max="100" value="20" />
-        </label>
-      </div>
+      <button id="start-btn">Iniciar</button>
     </div>
-    <button id="start-btn">Iniciar</button>
   </div>
 
   <!-- HUD superior -->
