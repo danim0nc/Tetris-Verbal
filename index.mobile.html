@@ -404,7 +404,7 @@
           if(tk==='PERFECT') return 'condicional perfecto';
         }
         return map[tk]||tk?.toLowerCase?.()||'';
-      }catch{ return s; } }
+      }
 
       generarDatos(){ if(this.state.poolIdx>=this.state.poolVerbos.length) this.generarPool(); const verbo=this.state.poolVerbos[this.state.poolIdx++]; const def=this.state.levelDefs[this.state.nivel-1]||this.state.levelDefs.at(-1);
         let mk=def.modo, tk=def.tiempo; if(mk==='RANDOM'){ const moods=['INDICATIVE','SUBJUNCTIVE','CONDITIONAL']; mk=moods[Math.floor(Math.random()*moods.length)]; }
@@ -487,8 +487,6 @@
           this.nextStep(false);
         }
       }
-        else { this.bloque.classList.add('fijo'); this.bloque.style.transform=''; this.bloque.style.left=this.posX+'px'; this.bloque.style.top=this.posY+'px'; this.state.fijos.push(this.bloque); this.state.usedCount++; if(this.posY <= this.elems.header.clientHeight + 6) return this.end(false); this.nextStep(false); }
-      }
       nextStep(ok){ const total=this.state.config.totalConj; if(this.state.usedCount>=total) return this.end(true);
         // sin niveles complejos en móvil: solo marcador de nivel cada 10
         if(this.state.usedCount % 10 === 0){ this.state.nivel++; this.setText(this.elems.nivel, String(this.state.nivel)); this.showLevel(this.state.nivel); return; }
@@ -516,14 +514,10 @@
         }
         s.style.display = 'flex';
         if (this.levelTimer) clearTimeout(this.levelTimer);
-        this.levelTimer = setTimeout(() => { s.style.display = 'none'; this.crearBloque(); }, 1200);
-      }`;
-        s.style.display = 'flex';
-        if (this.levelTimer) clearTimeout(this.levelTimer);
         this.levelTimer = setTimeout(() => {
           s.style.display = 'none';
           this.crearBloque();
-        }, 1000);
+        }, 1200);
       }
 
       resetGame(){
@@ -544,15 +538,6 @@
         });
         this.showLevel(1);
       }
-        if (this.anim) { cancelAnimationFrame(this.anim); this.anim = null; }
-        if (this.bloque) { this.bloque.remove(); this.bloque = null; }
-        // Limpia cualquier bloque suelto/fijo en el stage
-        this.elems.stage.querySelectorAll('.bloque').forEach(b => b.remove());
-        this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1');
-        this.state.puntaje=0; this.state.nivel=1; this.state.usedCount=0;
-        this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0;
-        this.generarPool(); this.showLevel(1);
-      }
       end(won){
         cancelAnimationFrame(this.anim);
         const sum=this.elems.endSummary;
@@ -567,7 +552,7 @@
         this.elems.endScr.style.display='flex';
         this.elems.btnRestart.onclick=()=>{ this.elems.endScr.style.display='none'; this.resetGame(); };
         this.elems.btnMainMenu.onclick=()=>this.returnToMenu();
-      }</h2><p>Puntuación: <strong>${this.state.puntaje}</strong></p>`; this.elems.endScr.style.display='flex'; this.elems.btnRestart.onclick=()=>{ this.elems.endScr.style.display='none'; this.resetGame(); }; this.elems.btnMainMenu.onclick=()=>this.returnToMenu(); }
+      }
       returnToMenu(){
         if (this.levelTimer) { clearTimeout(this.levelTimer); this.levelTimer = null; }
         if (this.anim) { cancelAnimationFrame(this.anim); this.anim = null; }
