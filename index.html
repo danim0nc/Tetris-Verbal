@@ -89,6 +89,21 @@
       font-weight: bold;
       z-index: 90;                  /* debajo de #start-screen (100) */
     }
+    #level-screen .level-card {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 16px;
+      padding: 1.6rem 2rem;
+      text-align: center;
+      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.45);
+    }
+    #level-screen .level-title { font-size: 3rem; letter-spacing: 0.06em; }
+    #level-screen .level-detail {
+      margin-top: .6rem;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: rgba(226, 232, 240, 0.9);
+    }
 
     #end-screen {
       position: fixed;
@@ -108,10 +123,20 @@
     #end-screen table {
       border-collapse: collapse;
       margin: 0 auto;
+      background: rgba(15, 23, 42, 0.65);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
     }
     #end-screen th, #end-screen td {
-      border: 1px solid #fff;
-      padding: .4rem .8rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: .5rem .9rem;
+    }
+    #end-screen th {
+      background: rgba(15, 23, 42, 0.85);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: .85rem;
     }
     #btn-restart2 {
       padding: .6rem 1.2rem;
@@ -160,39 +185,75 @@
       justify-content: center;
     }
     #header-datos {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px;
       background: rgba(248, 250, 252, 0.95);
       border-bottom: 1px solid rgba(148, 163, 184, 0.6);
       backdrop-filter: blur(6px);
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
     }
     .info-top {
       display: flex;
       flex-direction: column;
       align-items: center;
-      flex: 1;
-      padding: 4px;
+      justify-content: center;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
     .info-top span {
-      font-size: 16px;
-      font-weight: normal;
-      margin-top: 2px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 4px;
+      text-transform: none;
+      letter-spacing: 0;
     }
-    #ventana-modo-top { border-radius: 999px; padding: 4px 8px; color: #fff; background: linear-gradient(135deg, #38bdf8, #a855f7); }
+    #ventana-modo-top {
+      color: #fff;
+      border: none;
+      background: linear-gradient(135deg, #38bdf8, #a855f7);
+      box-shadow: 0 10px 18px rgba(56, 189, 248, 0.25);
+    }
 
     #campo-juego {
       position: relative;
       width: var(--board-w);
       height: var(--board-h);
-      background: linear-gradient(180deg, #f8fafc, #e2e8f0 60%);
-      border: 2px solid rgba(51, 65, 85, 0.5);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 48%),
+        linear-gradient(180deg, #f8fafc 0%, #e2e8f0 60%, #dbeafe 100%);
+      border: 2px solid rgba(51, 65, 85, 0.55);
       border-radius: 16px;
-      box-shadow: 0 24px 40px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 24px 40px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.75);
       box-sizing: border-box;
       overflow: hidden;
+    }
+    #campo-juego::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to right, rgba(148, 163, 184, 0.18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+      background-size: calc(100% / 4) calc(100% / 12);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #campo-juego::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.12) 70%, rgba(15, 23, 42, 0.18) 100%);
+      pointer-events: none;
+      z-index: 0;
     }
     #conjugaciones {
       position: absolute;
@@ -200,32 +261,34 @@
       width: 100%;
       display: flex;
       justify-content: space-between;
-      padding: 10px 12px;
-      background: rgba(226, 232, 240, 0.95);
-      border-top: 1px solid rgba(148, 163, 184, 0.6);
-      z-index: 1;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, rgba(241, 245, 249, 0.98), rgba(226, 232, 240, 0.98));
+      border-top: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 -10px 20px rgba(15, 23, 42, 0.12);
+      z-index: 2;
       box-sizing: border-box;
+      backdrop-filter: blur(6px);
     }
     .opcion-conjugacion {
       flex: 1;
       margin: 0 5px;
-      padding: 8px;
+      padding: 9px 8px;
       min-width: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+      background: linear-gradient(135deg, #ffffff, #f8fafc);
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.14);
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-      border-radius: 10px;
+      border-radius: 12px;
       user-select: none;
       overflow: hidden;
       transition: transform .15s ease, box-shadow .2s ease;
     }
-    .opcion-conjugacion:hover { transform: translateY(-1px); box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18); }
+    .opcion-conjugacion:hover { transform: translateY(-1px); box-shadow: 0 14px 22px rgba(15, 23, 42, 0.2); }
     .opcion-conjugacion:focus { outline: 3px solid #2196F3; }
     .texto-ajustable {
       display: inline-block;
@@ -241,10 +304,16 @@
       text-align: center;
       line-height: 40px;
       border-radius: 10px;
-      box-shadow: 0 10px 16px rgba(22, 101, 52, 0.3);
-      z-index: 2;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 12px 18px rgba(22, 101, 52, 0.28), inset 0 -2px 6px rgba(15, 23, 42, 0.3);
+      z-index: 3;
     }
-    .bloque.fijo { opacity: 0.6; background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: none; }
+    .bloque.fijo {
+      opacity: 0.85;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 8px 14px rgba(127, 29, 29, 0.4), inset 0 -2px 6px rgba(15, 23, 42, 0.35);
+    }
     #mensaje {
       position: absolute;
       top: 40%; left: 50%;
@@ -270,6 +339,17 @@
       transition: transform .2s ease, box-shadow .2s ease;
     }
     #btn-interrumpir:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 12px 18px rgba(15, 23, 42, 0.18); }
+    #btn-pausa {
+      padding: .6rem .8rem;
+      font-size: .95rem;
+      cursor: pointer;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    #btn-pausa:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 12px 18px rgba(15, 23, 42, 0.18); }
     #confirm-exit {
       position: fixed;
       inset: 0;
@@ -389,7 +469,7 @@
       </div>
       <button id="start-btn">Iniciar</button>
       <p style="margin-top:.5rem">
-        <a href="index-mobile.html" style="color:#e2e8f0; text-decoration:none;">Ir a la versión móvil</a>
+        <a href="index.mobile.html" style="color:#e2e8f0; text-decoration:none;">Ir a la versión móvil</a>
       </p>
     </div>
   </div>
@@ -422,6 +502,7 @@
     <div id="panel-info">
       <div class="ventana-info" id="ventana-puntaje">PUNTAJE:<br><span>000</span></div>
       <div class="ventana-info" id="ventana-nivel">NIVEL:<br><span>1</span></div>
+      <button id="btn-pausa">Pausar</button>
       <button id="btn-interrumpir">Volver al menú</button>
     </div>
     <div>
@@ -449,6 +530,11 @@
   </div>
 
   <script type="module">
+    const isMobileDevice = () => window.matchMedia('(pointer: coarse)').matches
+      || /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileDevice() && !window.location.pathname.endsWith('index.mobile.html')) {
+      window.location.href = 'index.mobile.html';
+    }
     import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
     window.SpanishVerbs = SpanishVerbs;
 
@@ -458,6 +544,7 @@
         this.allRegular   = ["hablar","comer","vivir","estudiar","trabajar","caminar","cantar","amar","bailar","mirar"];
         this.pronombres   = ["yo","tú","él","nosotros","vosotros","ellos"];
         this.pronIndex    = { yo:0, tú:1, él:2, nosotros:3, vosotros:4, ellos:5 };
+        this.isPaused = false;
         this.state = {
           config: {},
           stats: [],
@@ -510,6 +597,7 @@
           endScreen:   get('end-screen'),
           endSummary:  get('end-summary'),
           exitConfirm: get('confirm-exit'),
+          btnPause:    get('btn-pausa'),
           btnExit:     get('btn-interrumpir'),
           btnConfirmExit: get('btn-confirm-exit'),
           btnCancelExit:  get('btn-cancel-exit')
@@ -525,6 +613,7 @@
         this.elems.startBtn.addEventListener('click', () => this.handleStart());
         this.elems.selModo.addEventListener('change', () => this.updateCustomTiempoOptions());
         this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
+        if (this.elems.btnPause) this.elems.btnPause.addEventListener('click', () => this.togglePause());
         if (this.elems.btnExit) this.elems.btnExit.addEventListener('click', () => this.requestExitConfirm());
         if (this.elems.btnConfirmExit) this.elems.btnConfirmExit.addEventListener('click', () => this.exitConfirmChoice(true));
         if (this.elems.btnCancelExit)  this.elems.btnCancelExit.addEventListener('click', () => this.exitConfirmChoice(false));
@@ -553,6 +642,37 @@
         this.elems.subjImpWrapper.style.display = show ? 'block' : 'none';
       }
 
+      modeLabel(mk) {
+        if (mk === 'SUBJUNCTIVE') return 'subjuntivo';
+        if (mk === 'CONDITIONAL') return 'condicional';
+        if (mk === 'RANDOM') return 'mixto';
+        return 'indicativo';
+      }
+
+      timeLabel(mk, tk) {
+        if (tk === 'RANDOM') return 'mixto';
+        const base = {
+          PRESENT: 'presente',
+          IMPERFECT: 'pretérito imperfecto',
+          PRETERITE: 'pretérito indefinido',
+          FUTURE: 'futuro',
+          PERFECT: 'pretérito perfecto',
+          PLUPERFECT: 'pretérito pluscuamperfecto'
+        };
+        if (mk === 'SUBJUNCTIVE') {
+          if (tk === 'PRESENT') return 'presente de subjuntivo';
+          if (tk === 'IMPERFECT') return 'imperfecto de subjuntivo';
+          if (tk === 'PLUPERFECT') return 'pretérito pluscuamperfecto de subjuntivo';
+          if (tk === 'PERFECT') return 'pretérito perfecto de subjuntivo';
+          if (tk === 'FUTURE') return 'futuro de subjuntivo';
+        }
+        if (mk === 'CONDITIONAL') {
+          if (tk === 'PRESENT') return 'condicional (simple)';
+          if (tk === 'PERFECT') return 'condicional perfecto';
+        }
+        return base[tk] || (tk || '').toLowerCase();
+      }
+
       handleStart() {
         const mode = this.elems.menuNivel.value;
         this.state.config.mode = mode;
@@ -563,6 +683,7 @@
 
         this.elems.startScreen.style.display = 'none';
         this.elems.contenedor.style.display   = 'flex';
+        this.setPaused(false);
         this.reiniciarJuego();
       }
 
@@ -618,7 +739,10 @@
 
       mostrarNivel(n) {
         const pantalla = this.elems.levelScreen;
-        pantalla.textContent = `NIVEL ${n}`;
+        const def = this.state.levelDefs[n - 1] || this.state.levelDefs.slice(-1)[0] || {};
+        const modo = this.modeLabel(def.modo || 'INDICATIVE');
+        const tiempo = this.timeLabel(def.modo || 'INDICATIVE', def.tiempo || 'PRESENT');
+        pantalla.innerHTML = `<div class="level-card"><div class="level-title">NIVEL ${n}</div><div class="level-detail">Modo: ${modo} · Tiempo verbal: ${tiempo}</div></div>`;
         pantalla.style.display = 'flex';
         setTimeout(() => { pantalla.style.display = 'none'; this.crearBloque(); }, 1100);
       }
@@ -782,7 +906,7 @@
       }
 
       animar() {
-        if (!this.bloqueActual) return;
+        if (!this.bloqueActual || this.isPaused) return;
         let limitY = this.elems.campo.offsetHeight - this.elems.conjugaciones.offsetHeight;
         for (const f of this.state.fijos) { const x = f.offsetLeft, y = f.offsetTop; if (this.posX < x+this.bloqueW && this.posX+this.bloqueW > x && this.posY+this.bloqueH >= y && this.posY < y) { limitY = y - this.bloqueH; } }
         if (this.posY + this.bloqueH < limitY) {
@@ -796,8 +920,11 @@
         if (btn && btn.dataset.correcta === 'true') {
           this.state.puntaje += 100; this.setText(this.elems.puntajeSpan, String(this.state.puntaje).padStart(3,'0')); this.bloqueActual.remove(); this.state.stats[this.state.nivel-1].ok++;
         } else {
-          this.bloqueActual.classList.add('fijo'); this.bloqueActual.style.transform = ''; this.bloqueActual.style.left = `${this.posX}px`; this.bloqueActual.style.top  = `${limitY}px`;
-          this.state.fijos.push(this.bloqueActual); if (limitY <= 10) return this.finJuego(); this.state.stats[this.state.nivel-1].fail++;
+          const conjTop = this.elems.campo.offsetHeight - this.elems.conjugaciones.offsetHeight;
+          const maxFixedY = conjTop - this.bloqueH;
+          const finalY = Math.min(limitY, maxFixedY);
+          this.bloqueActual.classList.add('fijo'); this.bloqueActual.style.transform = ''; this.bloqueActual.style.left = `${this.posX}px`; this.bloqueActual.style.top  = `${finalY}px`;
+          this.state.fijos.push(this.bloqueActual); if (finalY <= 10) return this.finJuego(); this.state.stats[this.state.nivel-1].fail++;
         }
         this.state.usedCount++;
         if (this.state.usedCount >= this.state.config.totalConj) return this.win();
@@ -818,14 +945,35 @@
         const btnMenu = document.getElementById('btn-mainmenu'); if (btnMenu) btnMenu.onclick = () => this.volverMenuPrincipal();
       }
 
-      finJuego() { cancelAnimationFrame(this.anim); this.showFinalScreen(false); }
-      win() { if (this.anim) cancelAnimationFrame(this.anim); this.showFinalScreen(true); }
+      finJuego() { this.setPaused(false); cancelAnimationFrame(this.anim); this.showFinalScreen(false); }
+      win() { this.setPaused(false); if (this.anim) cancelAnimationFrame(this.anim); this.showFinalScreen(true); }
+
+      setPaused(state) {
+        this.isPaused = state;
+        if (this.elems.btnPause) this.elems.btnPause.textContent = state ? 'Reanudar' : 'Pausar';
+        if (this.elems.mensaje) {
+          this.elems.mensaje.textContent = 'PAUSA';
+          this.elems.mensaje.style.display = state ? 'block' : 'none';
+        }
+      }
+
+      togglePause() {
+        if (!this.elems.contenedor || this.elems.contenedor.style.display === 'none') return;
+        this.setPaused(!this.isPaused);
+        if (this.isPaused) {
+          if (this.anim) cancelAnimationFrame(this.anim);
+          this.anim = null;
+        } else if (this.bloqueActual) {
+          this.anim = requestAnimationFrame(() => this.animar());
+        }
+      }
 
       requestExitConfirm() { this._wasRunning = !!this.anim; if (this.anim) cancelAnimationFrame(this.anim); this.anim = null; if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'flex'; }
-      exitConfirmChoice(ok) { if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none'; if (ok) this.volverMenuPrincipal(); else if (this._wasRunning && this.bloqueActual) { this.anim = requestAnimationFrame(() => this.animar()); } }
+      exitConfirmChoice(ok) { if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none'; if (ok) this.volverMenuPrincipal(); else if (this._wasRunning && this.bloqueActual && !this.isPaused) { this.anim = requestAnimationFrame(() => this.animar()); } }
 
       volverMenuPrincipal() {
         if (this.anim) cancelAnimationFrame(this.anim);
+        this.setPaused(false);
         if (this.bloqueActual) { this.bloqueActual.remove(); this.bloqueActual = null; }
         this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0;
         this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
@@ -833,15 +981,20 @@
       }
 
       reiniciarJuego() {
-        if (this.elems.mensaje) this.elems.mensaje.style.display = 'none';
+        this.setPaused(false);
         this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
         this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0; this.generarPool();
-        this.state.stats = this.state.levelDefs.map(ld => ({ modo: ld.modo === 'RANDOM' ? 'mixto' : ld.modo.toLowerCase(), tiempo: ld.tiempo === 'RANDOM' ? 'mixto' : ld.tiempo.toLowerCase(), ok: 0, fail: 0 }));
+        this.state.stats = this.state.levelDefs.map(ld => ({
+          modo: this.modeLabel(ld.modo || 'INDICATIVE'),
+          tiempo: this.timeLabel(ld.modo || 'INDICATIVE', ld.tiempo || 'PRESENT'),
+          ok: 0,
+          fail: 0
+        }));
         this.mostrarNivel(this.state.nivel);
       }
 
       handleKeyDown(e) {
-        if (!this.bloqueActual) return; const now = Date.now();
+        if (!this.bloqueActual || this.isPaused) return; const now = Date.now();
         if (e.key === 'ArrowDown') { if (now - this.lastDown < 300) this.dropFast = true; else this.acelerado = true; this.lastDown = now; }
         if (e.key === 'ArrowLeft' && this.posX > 0) this.posX -= 5;
         if (e.key === 'ArrowRight' && this.posX < this.elems.campo.offsetWidth - this.bloqueW) this.posX += 5;
@@ -857,25 +1010,25 @@
       }
       setupTouchControls() {
         this.elems.opcionesBtns().forEach((btn, i) => {
-          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloqueActual) return; this.moveToColumn(i); this.dropFast = true; };
+          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloqueActual || this.isPaused) return; this.moveToColumn(i); this.dropFast = true; };
           btn.addEventListener('click', go); btn.addEventListener('touchend', go, { passive: false });
         });
         const campo = this.elems.campo; let touch = null; const getTouch = (e) => { if (!touch) return null; for (const t of e.changedTouches) if (t.identifier === touch.id) return t; return null; };
         if (campo) {
           campo.addEventListener('touchstart', (e) => { if (!e.changedTouches.length) return; const t = e.changedTouches[0]; touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved:false }; }, { passive: true });
           campo.addEventListener('touchmove', (e) => { const t = touch ? getTouch(e) : null; if (!t || !this.bloqueActual) return; const dx = t.clientX - touch.lastX; if (Math.abs(dx) > 0) { this.posX += dx; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; touch.moved = true; } touch.lastX = t.clientX; touch.lastY = t.clientY; }, { passive: true });
-          campo.addEventListener('touchend', (e) => { const t = touch ? getTouch(e) : null; if (!t) return; const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX; if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) { this.dropFast = true; } else if (!touch.moved && this.elems.campo) { const rect = this.elems.campo.getBoundingClientRect(); const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1)); const col = Math.floor(relX / rect.width * 4); this.moveToColumn(col); this.acelerado = true; setTimeout(() => this.acelerado = false, 250); } touch = null; });
+          campo.addEventListener('touchend', (e) => { const t = touch ? getTouch(e) : null; if (!t || this.isPaused) return; const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX; if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) { this.dropFast = true; } else if (!touch.moved && this.elems.campo) { const rect = this.elems.campo.getBoundingClientRect(); const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1)); const col = Math.floor(relX / rect.width * 4); this.moveToColumn(col); this.acelerado = true; setTimeout(() => this.acelerado = false, 250); } touch = null; });
         }
         const bar = document.getElementById('mobile-controls');
         if (bar) {
-          const step = 24; const applyMove = (delta) => { if (!this.bloqueActual) return; this.posX += delta; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; };
+          const step = 24; const applyMove = (delta) => { if (!this.bloqueActual || this.isPaused) return; this.posX += delta; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; };
           bar.querySelector('[data-act="left"]').addEventListener('click', () => applyMove(-step));
           bar.querySelector('[data-act="right"]').addEventListener('click', () => applyMove(step));
           const down = bar.querySelector('[data-act="down"]'); const drop = bar.querySelector('[data-act="drop"]');
           const setAccel = (on) => this.acelerado = !!on;
           down.addEventListener('touchstart', () => setAccel(true), { passive: true }); down.addEventListener('touchend',   () => setAccel(false));
           down.addEventListener('mousedown',  () => setAccel(true)); down.addEventListener('mouseup',    () => setAccel(false));
-          drop.addEventListener('click', () => { this.dropFast = true; });
+          drop.addEventListener('click', () => { if (!this.isPaused) this.dropFast = true; });
         }
       }
     }

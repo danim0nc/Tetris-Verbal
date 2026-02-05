@@ -94,6 +94,13 @@
       background: #fff;
       box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
     }
+    #btn-pause {
+      padding: .45rem .7rem;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+    }
 
     /* ======= Stage escalado ======= */
     #shell { position: relative; touch-action: none; }
@@ -102,28 +109,68 @@
       touch-action: none;
       width: calc(var(--stage-w) * 1px);
       height: calc(var(--stage-h) * 1px);
-      background: linear-gradient(180deg, #f8fafc, #e2e8f0 60%);
-      border: 2px solid rgba(51, 65, 85, 0.5);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 48%),
+        linear-gradient(180deg, #f8fafc 0%, #e2e8f0 60%, #dbeafe 100%);
+      border: 2px solid rgba(51, 65, 85, 0.55);
       border-radius: 14px;
       overflow: hidden;
-      box-shadow: 0 22px 36px rgba(15, 23, 42, 0.18);
+      box-shadow: 0 22px 36px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+    #stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to right, rgba(148, 163, 184, 0.18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+      background-size: calc(100% / 4) calc(100% / 12);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.12) 70%, rgba(15, 23, 42, 0.18) 100%);
+      pointer-events: none;
+      z-index: 0;
     }
     #header-datos {
       position: absolute;
       top: 0; left: 0; right: 0;
-      display: flex;
-      justify-content: space-between;
-      padding: 6px 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 8px;
       background: rgba(248, 250, 252, 0.95);
       border-bottom: 1px solid rgba(148, 163, 184, 0.6);
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
       z-index: 3;
       backdrop-filter: blur(6px);
     }
-    .info-top { display: flex; flex-direction: column; align-items: center; flex: 1; padding: 2px; }
-    .info-top span { font-size: 14px; font-weight: 600; margin-top: 2px; }
-    #ventana-modo-top { border-radius: 999px; padding: 2px 6px; color: #fff; background: linear-gradient(135deg, #38bdf8, #a855f7); }
+    .info-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      box-shadow: 0 6px 12px rgba(15, 23, 42, 0.12);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .info-top span { font-size: 13px; font-weight: 600; margin-top: 3px; text-transform: none; letter-spacing: 0; }
+    #ventana-modo-top {
+      color: #fff;
+      border: none;
+      background: linear-gradient(135deg, #38bdf8, #a855f7);
+      box-shadow: 0 8px 14px rgba(56, 189, 248, 0.25);
+    }
 
     /* ======= Opciones al pie (4 columnas) ======= */
     #conjugaciones {
@@ -133,15 +180,17 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
       padding: 8px;
-      background: rgba(226, 232, 240, 0.95);
-      border-top: 1px solid rgba(148, 163, 184, 0.6);
+      background: linear-gradient(180deg, rgba(241, 245, 249, 0.98), rgba(226, 232, 240, 0.98));
+      border-top: 1px solid rgba(148, 163, 184, 0.7);
+      box-shadow: 0 -10px 20px rgba(15, 23, 42, 0.12);
       z-index: 2;
+      backdrop-filter: blur(6px);
     }
     .opcion-conjugacion {
       padding: 8px 6px;
-      background: #fff;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      border-radius: 10px;
+      background: linear-gradient(135deg, #ffffff, #f8fafc);
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      border-radius: 12px;
       font-weight: 800;
       font-size: 14px;
       display: flex;
@@ -149,7 +198,7 @@
       justify-content: center;
       min-width: 0;
       overflow: hidden;
-      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.14);
     }
     .opcion-conjugacion .texto-ajustable { display: inline-block; transform-origin: center center; white-space: nowrap; }
 
@@ -164,10 +213,16 @@
       text-align: center;
       line-height: 40px;
       border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.45);
       z-index: 4;
-      box-shadow: 0 10px 16px rgba(22, 101, 52, 0.3);
+      box-shadow: 0 12px 18px rgba(22, 101, 52, 0.28), inset 0 -2px 6px rgba(15, 23, 42, 0.3);
     }
-    .bloque.fijo { opacity: .6; background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: none; }
+    .bloque.fijo {
+      opacity: .85;
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 8px 14px rgba(127, 29, 29, 0.4), inset 0 -2px 6px rgba(15, 23, 42, 0.35);
+    }
 
     /* ======= Overlays ======= */
     #level-screen, #end-screen, #confirm-exit {
@@ -181,6 +236,20 @@
       z-index: 900;
       text-align: center;
       padding: 1rem;
+    }
+    #pause-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.55);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 880;
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
     }
     #level-screen span { font-size: 3rem; font-weight: 900; }
     #end-screen .box,
@@ -268,6 +337,7 @@
   <div id="hud" aria-hidden="true">
     <div class="chip">PUNTAJE: <span id="puntaje">000</span></div>
     <div class="chip">NIVEL: <span id="nivel">1</span></div>
+    <button id="btn-pause">Pausar</button>
     <button id="btn-main">Menú</button>
   </div>
 
@@ -316,6 +386,8 @@
     </div>
   </div>
 
+  <div id="pause-screen">PAUSA</div>
+
     <script type="module">
     import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
     window.SpanishVerbs = SpanishVerbs;
@@ -344,6 +416,7 @@
         this.allIrregular = ["tener","ir","ser","hacer","decir","venir","estar","saber","querer","poder"];
         this.allRegular   = ["hablar","comer","vivir","estudiar","trabajar","caminar","cantar","amar","bailar","mirar"];
         this.pronombres   = ["yo","tú","él","nosotros","vosotros","ellos"];
+        this.isPaused = false;
         this.state = {
           config: {}, levelDefs: [], poolVerbos: [], poolIdx: 0,
           usedCount: 0, puntaje: 0, nivel: 1, fijos: [], velocidadY: 1
@@ -372,7 +445,9 @@
           modoTop: get('ventana-modo-top'), modoSpan: get('ventana-modo-top').querySelector('span'),
           levelScr: get('level-screen'), endScr: get('end-screen'), endSummary: get('end-summary'),
           btnRestart: get('btn-restart2'), btnMainMenu: get('btn-mainmenu'), btnMain: get('btn-main'),
-          exitConfirm: get('confirm-exit'), btnConfirmExit: get('btn-confirm-exit'), btnCancelExit: get('btn-cancel-exit')
+          btnPause: get('btn-pause'),
+          exitConfirm: get('confirm-exit'), btnConfirmExit: get('btn-confirm-exit'), btnCancelExit: get('btn-cancel-exit'),
+          pauseScreen: get('pause-screen')
         };
       }
       setText(node, txt) { if (node) node.textContent = txt; }
@@ -388,6 +463,7 @@
         this.elems.startBtn.addEventListener('click', () => this.handleStart());
         // Botón menú → confirmación de salida
         this.elems.btnMain.addEventListener('click', () => this.requestExitConfirm());
+        if (this.elems.btnPause) this.elems.btnPause.addEventListener('click', () => this.togglePause());
         if (this.elems.btnConfirmExit) this.elems.btnConfirmExit.addEventListener('click', () => this.exitConfirmChoice(true));
         if (this.elems.btnCancelExit)  this.elems.btnCancelExit.addEventListener('click', () => this.exitConfirmChoice(false));
         // Cambios en selects personalizados
@@ -395,7 +471,7 @@
         this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
         // Tap en opciones → mover a columna y caída rápida
         Array.from(document.querySelectorAll('.opcion-conjugacion')).forEach((btn, i) => {
-          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloque) return; this.moveToColumn(i); this.dropFast = true; };
+          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloque || this.isPaused) return; this.moveToColumn(i); this.dropFast = true; };
           btn.addEventListener('click', go);
           btn.addEventListener('touchend', go, { passive: false });
         });
@@ -415,6 +491,7 @@
         stage.addEventListener('touchmove', (e) => {
           const t = getTouch(e);
           if (!t || !this.bloque) return;
+          if (this.isPaused) return;
           const scale = window.__stageScale || 1;
           const dxStage = (t.clientX - touch.lastX) / scale;
           this.posX += dxStage;
@@ -426,7 +503,7 @@
         }, { passive: true });
         stage.addEventListener('touchend', (e) => {
           const t = getTouch(e);
-          if (!t) return;
+          if (!t || this.isPaused) return;
           const dx = t.clientX - touch.startX;
           const dy = t.clientY - touch.startY;
           if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) {
@@ -456,7 +533,7 @@
       exitConfirmChoice(ok){
         if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none';
         if (ok) { this.returnToMenu(); }
-        else if (this._wasRunning && this.bloque) { this.anim = requestAnimationFrame(() => this.animar()); }
+        else if (this._wasRunning && this.bloque && !this.isPaused) { this.anim = requestAnimationFrame(() => this.animar()); }
       }
 
       updateCustomTiempoOptions() {
@@ -484,6 +561,7 @@
         else this.setupCustom();
         this.elems.start.style.display = 'none';
         this.elems.hud.setAttribute('aria-hidden', 'false');
+        this.setPaused(false);
         this.resetGame();
       }
       setupEasy() {
@@ -589,7 +667,7 @@
         this.posX = Math.floor((this.elems.stage.clientWidth - this.blockW)/2); this.posY= this.elems.header.clientHeight + 6;
         this.updateBlock(); this.anim = requestAnimationFrame(()=>this.animar());
       }
-      animar(){ if(!this.bloque) return; const limitY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4; // 4px colchón
+      animar(){ if(!this.bloque || this.isPaused) return; const limitY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4; // 4px colchón
         // check colisiones con fijos (básico)
         for(const f of this.state.fijos){ const x=f.offsetLeft, y=f.offsetTop; if(this.posX < x+this.blockW && this.posX+this.blockW > x && this.posY+this.blockH >= y && this.posY < y){ this.land(y - this.blockH); return; } }
         const speed = this.dropFast ? this.state.velocidadY*12 : this.accel ? this.state.velocidadY*4 : this.state.velocidadY;
@@ -613,6 +691,11 @@
           this.state.usedCount++;
           this.nextStep(true);
         } else {
+          const maxFixedY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4;
+          if (this.posY > maxFixedY) {
+            this.posY = maxFixedY;
+            this.updateBlock();
+          }
           this.bloque.classList.add('fijo');
           this.bloque.style.transform='';
           this.bloque.style.left=this.posX+'px';
@@ -630,6 +713,23 @@
         // sin niveles complejos en móvil: solo marcador de nivel cada 10
         if(this.state.usedCount % 10 === 0){ this.state.nivel++; this.setText(this.elems.nivel, String(this.state.nivel)); this.showLevel(this.state.nivel); return; }
         this.bloque=null; cancelAnimationFrame(this.anim); this.crearBloque();
+      }
+
+      setPaused(state) {
+        this.isPaused = state;
+        if (this.elems.btnPause) this.elems.btnPause.textContent = state ? 'Reanudar' : 'Pausar';
+        if (this.elems.pauseScreen) this.elems.pauseScreen.style.display = state ? 'flex' : 'none';
+      }
+
+      togglePause() {
+        if (!this.elems.hud || this.elems.hud.getAttribute('aria-hidden') !== 'false') return;
+        this.setPaused(!this.isPaused);
+        if (this.isPaused) {
+          if (this.anim) cancelAnimationFrame(this.anim);
+          this.anim = null;
+        } else if (this.bloque) {
+          this.anim = requestAnimationFrame(()=>this.animar());
+        }
       }
       showLevel(n){
         const s = this.elems.levelScr;
@@ -660,6 +760,7 @@
       }
 
       resetGame(){
+        this.setPaused(false);
         if (this.levelTimer) { clearTimeout(this.levelTimer); this.levelTimer = null; }
         if (this.anim) { cancelAnimationFrame(this.anim); this.anim = null; }
         if (this.bloque) { this.bloque.remove(); this.bloque = null; }
@@ -678,6 +779,7 @@
         this.showLevel(1);
       }
       end(won){
+        this.setPaused(false);
         cancelAnimationFrame(this.anim);
         const sum=this.elems.endSummary;
         const total=this.state.puntaje;
@@ -699,6 +801,7 @@
         this.elems.stage.querySelectorAll('.bloque').forEach(b => b.remove());
         if (this.elems.exitConfirm) this.elems.exitConfirm.style.display='none';
         if (this.elems.endScr) this.elems.endScr.style.display='none';
+        this.setPaused(false);
         this.elems.start.style.display='flex';
         this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1');
         this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0;
