@@ -89,6 +89,21 @@
       font-weight: bold;
       z-index: 90;                  /* debajo de #start-screen (100) */
     }
+    #level-screen .level-card {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 16px;
+      padding: 1.6rem 2rem;
+      text-align: center;
+      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.45);
+    }
+    #level-screen .level-title { font-size: 3rem; letter-spacing: 0.06em; }
+    #level-screen .level-detail {
+      margin-top: .6rem;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: rgba(226, 232, 240, 0.9);
+    }
 
     #end-screen {
       position: fixed;
@@ -108,10 +123,20 @@
     #end-screen table {
       border-collapse: collapse;
       margin: 0 auto;
+      background: rgba(15, 23, 42, 0.65);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 18px 30px rgba(0, 0, 0, 0.35);
     }
     #end-screen th, #end-screen td {
-      border: 1px solid #fff;
-      padding: .4rem .8rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: .5rem .9rem;
+    }
+    #end-screen th {
+      background: rgba(15, 23, 42, 0.85);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      font-size: .85rem;
     }
     #btn-restart2 {
       padding: .6rem 1.2rem;
@@ -160,28 +185,42 @@
       justify-content: center;
     }
     #header-datos {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px;
       background: rgba(248, 250, 252, 0.95);
       border-bottom: 1px solid rgba(148, 163, 184, 0.6);
       backdrop-filter: blur(6px);
       font-size: 12px;
-      font-weight: bold;
+      font-weight: 700;
     }
     .info-top {
       display: flex;
       flex-direction: column;
       align-items: center;
-      flex: 1;
-      padding: 4px;
+      justify-content: center;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
     }
     .info-top span {
-      font-size: 16px;
-      font-weight: normal;
-      margin-top: 2px;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 4px;
+      text-transform: none;
+      letter-spacing: 0;
     }
-    #ventana-modo-top { border-radius: 999px; padding: 4px 8px; color: #fff; background: linear-gradient(135deg, #38bdf8, #a855f7); }
+    #ventana-modo-top {
+      color: #fff;
+      border: none;
+      background: linear-gradient(135deg, #38bdf8, #a855f7);
+      box-shadow: 0 10px 18px rgba(56, 189, 248, 0.25);
+    }
 
     #campo-juego {
       position: relative;
@@ -603,6 +642,37 @@
         this.elems.subjImpWrapper.style.display = show ? 'block' : 'none';
       }
 
+      modeLabel(mk) {
+        if (mk === 'SUBJUNCTIVE') return 'subjuntivo';
+        if (mk === 'CONDITIONAL') return 'condicional';
+        if (mk === 'RANDOM') return 'mixto';
+        return 'indicativo';
+      }
+
+      timeLabel(mk, tk) {
+        if (tk === 'RANDOM') return 'mixto';
+        const base = {
+          PRESENT: 'presente',
+          IMPERFECT: 'pretérito imperfecto',
+          PRETERITE: 'pretérito indefinido',
+          FUTURE: 'futuro',
+          PERFECT: 'pretérito perfecto',
+          PLUPERFECT: 'pretérito pluscuamperfecto'
+        };
+        if (mk === 'SUBJUNCTIVE') {
+          if (tk === 'PRESENT') return 'presente de subjuntivo';
+          if (tk === 'IMPERFECT') return 'imperfecto de subjuntivo';
+          if (tk === 'PLUPERFECT') return 'pretérito pluscuamperfecto de subjuntivo';
+          if (tk === 'PERFECT') return 'pretérito perfecto de subjuntivo';
+          if (tk === 'FUTURE') return 'futuro de subjuntivo';
+        }
+        if (mk === 'CONDITIONAL') {
+          if (tk === 'PRESENT') return 'condicional (simple)';
+          if (tk === 'PERFECT') return 'condicional perfecto';
+        }
+        return base[tk] || (tk || '').toLowerCase();
+      }
+
       handleStart() {
         const mode = this.elems.menuNivel.value;
         this.state.config.mode = mode;
@@ -669,7 +739,10 @@
 
       mostrarNivel(n) {
         const pantalla = this.elems.levelScreen;
-        pantalla.textContent = `NIVEL ${n}`;
+        const def = this.state.levelDefs[n - 1] || this.state.levelDefs.slice(-1)[0] || {};
+        const modo = this.modeLabel(def.modo || 'INDICATIVE');
+        const tiempo = this.timeLabel(def.modo || 'INDICATIVE', def.tiempo || 'PRESENT');
+        pantalla.innerHTML = `<div class="level-card"><div class="level-title">NIVEL ${n}</div><div class="level-detail">Modo: ${modo} · Tiempo verbal: ${tiempo}</div></div>`;
         pantalla.style.display = 'flex';
         setTimeout(() => { pantalla.style.display = 'none'; this.crearBloque(); }, 1100);
       }
@@ -911,7 +984,12 @@
         this.setPaused(false);
         this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
         this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0; this.generarPool();
-        this.state.stats = this.state.levelDefs.map(ld => ({ modo: ld.modo === 'RANDOM' ? 'mixto' : ld.modo.toLowerCase(), tiempo: ld.tiempo === 'RANDOM' ? 'mixto' : ld.tiempo.toLowerCase(), ok: 0, fail: 0 }));
+        this.state.stats = this.state.levelDefs.map(ld => ({
+          modo: this.modeLabel(ld.modo || 'INDICATIVE'),
+          tiempo: this.timeLabel(ld.modo || 'INDICATIVE', ld.tiempo || 'PRESENT'),
+          ok: 0,
+          fail: 0
+        }));
         this.mostrarNivel(this.state.nivel);
       }
 
