@@ -300,6 +300,17 @@
       transition: transform .2s ease, box-shadow .2s ease;
     }
     #btn-interrumpir:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 12px 18px rgba(15, 23, 42, 0.18); }
+    #btn-pausa {
+      padding: .6rem .8rem;
+      font-size: .95rem;
+      cursor: pointer;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.15);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    #btn-pausa:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 12px 18px rgba(15, 23, 42, 0.18); }
     #confirm-exit {
       position: fixed;
       inset: 0;
@@ -452,6 +463,7 @@
     <div id="panel-info">
       <div class="ventana-info" id="ventana-puntaje">PUNTAJE:<br><span>000</span></div>
       <div class="ventana-info" id="ventana-nivel">NIVEL:<br><span>1</span></div>
+      <button id="btn-pausa">Pausar</button>
       <button id="btn-interrumpir">Volver al menú</button>
     </div>
     <div>
@@ -493,6 +505,7 @@
         this.allRegular   = ["hablar","comer","vivir","estudiar","trabajar","caminar","cantar","amar","bailar","mirar"];
         this.pronombres   = ["yo","tú","él","nosotros","vosotros","ellos"];
         this.pronIndex    = { yo:0, tú:1, él:2, nosotros:3, vosotros:4, ellos:5 };
+        this.isPaused = false;
         this.state = {
           config: {},
           stats: [],
@@ -545,6 +558,7 @@
           endScreen:   get('end-screen'),
           endSummary:  get('end-summary'),
           exitConfirm: get('confirm-exit'),
+          btnPause:    get('btn-pausa'),
           btnExit:     get('btn-interrumpir'),
           btnConfirmExit: get('btn-confirm-exit'),
           btnCancelExit:  get('btn-cancel-exit')
@@ -560,6 +574,7 @@
         this.elems.startBtn.addEventListener('click', () => this.handleStart());
         this.elems.selModo.addEventListener('change', () => this.updateCustomTiempoOptions());
         this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
+        if (this.elems.btnPause) this.elems.btnPause.addEventListener('click', () => this.togglePause());
         if (this.elems.btnExit) this.elems.btnExit.addEventListener('click', () => this.requestExitConfirm());
         if (this.elems.btnConfirmExit) this.elems.btnConfirmExit.addEventListener('click', () => this.exitConfirmChoice(true));
         if (this.elems.btnCancelExit)  this.elems.btnCancelExit.addEventListener('click', () => this.exitConfirmChoice(false));
@@ -598,6 +613,7 @@
 
         this.elems.startScreen.style.display = 'none';
         this.elems.contenedor.style.display   = 'flex';
+        this.setPaused(false);
         this.reiniciarJuego();
       }
 
@@ -817,7 +833,7 @@
       }
 
       animar() {
-        if (!this.bloqueActual) return;
+        if (!this.bloqueActual || this.isPaused) return;
         let limitY = this.elems.campo.offsetHeight - this.elems.conjugaciones.offsetHeight;
         for (const f of this.state.fijos) { const x = f.offsetLeft, y = f.offsetTop; if (this.posX < x+this.bloqueW && this.posX+this.bloqueW > x && this.posY+this.bloqueH >= y && this.posY < y) { limitY = y - this.bloqueH; } }
         if (this.posY + this.bloqueH < limitY) {
@@ -856,14 +872,35 @@
         const btnMenu = document.getElementById('btn-mainmenu'); if (btnMenu) btnMenu.onclick = () => this.volverMenuPrincipal();
       }
 
-      finJuego() { cancelAnimationFrame(this.anim); this.showFinalScreen(false); }
-      win() { if (this.anim) cancelAnimationFrame(this.anim); this.showFinalScreen(true); }
+      finJuego() { this.setPaused(false); cancelAnimationFrame(this.anim); this.showFinalScreen(false); }
+      win() { this.setPaused(false); if (this.anim) cancelAnimationFrame(this.anim); this.showFinalScreen(true); }
+
+      setPaused(state) {
+        this.isPaused = state;
+        if (this.elems.btnPause) this.elems.btnPause.textContent = state ? 'Reanudar' : 'Pausar';
+        if (this.elems.mensaje) {
+          this.elems.mensaje.textContent = 'PAUSA';
+          this.elems.mensaje.style.display = state ? 'block' : 'none';
+        }
+      }
+
+      togglePause() {
+        if (!this.elems.contenedor || this.elems.contenedor.style.display === 'none') return;
+        this.setPaused(!this.isPaused);
+        if (this.isPaused) {
+          if (this.anim) cancelAnimationFrame(this.anim);
+          this.anim = null;
+        } else if (this.bloqueActual) {
+          this.anim = requestAnimationFrame(() => this.animar());
+        }
+      }
 
       requestExitConfirm() { this._wasRunning = !!this.anim; if (this.anim) cancelAnimationFrame(this.anim); this.anim = null; if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'flex'; }
-      exitConfirmChoice(ok) { if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none'; if (ok) this.volverMenuPrincipal(); else if (this._wasRunning && this.bloqueActual) { this.anim = requestAnimationFrame(() => this.animar()); } }
+      exitConfirmChoice(ok) { if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none'; if (ok) this.volverMenuPrincipal(); else if (this._wasRunning && this.bloqueActual && !this.isPaused) { this.anim = requestAnimationFrame(() => this.animar()); } }
 
       volverMenuPrincipal() {
         if (this.anim) cancelAnimationFrame(this.anim);
+        this.setPaused(false);
         if (this.bloqueActual) { this.bloqueActual.remove(); this.bloqueActual = null; }
         this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0;
         this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
@@ -871,7 +908,7 @@
       }
 
       reiniciarJuego() {
-        if (this.elems.mensaje) this.elems.mensaje.style.display = 'none';
+        this.setPaused(false);
         this.state.puntaje = 0; this.state.nivel = 1; this.state.usedCount = 0; this.setText(this.elems.puntajeSpan, '000'); this.setText(this.elems.nivelSpan, '1');
         this.state.fijos.forEach(b => b.remove()); this.state.fijos.length = 0; this.generarPool();
         this.state.stats = this.state.levelDefs.map(ld => ({ modo: ld.modo === 'RANDOM' ? 'mixto' : ld.modo.toLowerCase(), tiempo: ld.tiempo === 'RANDOM' ? 'mixto' : ld.tiempo.toLowerCase(), ok: 0, fail: 0 }));
@@ -879,7 +916,7 @@
       }
 
       handleKeyDown(e) {
-        if (!this.bloqueActual) return; const now = Date.now();
+        if (!this.bloqueActual || this.isPaused) return; const now = Date.now();
         if (e.key === 'ArrowDown') { if (now - this.lastDown < 300) this.dropFast = true; else this.acelerado = true; this.lastDown = now; }
         if (e.key === 'ArrowLeft' && this.posX > 0) this.posX -= 5;
         if (e.key === 'ArrowRight' && this.posX < this.elems.campo.offsetWidth - this.bloqueW) this.posX += 5;
@@ -895,25 +932,25 @@
       }
       setupTouchControls() {
         this.elems.opcionesBtns().forEach((btn, i) => {
-          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloqueActual) return; this.moveToColumn(i); this.dropFast = true; };
+          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloqueActual || this.isPaused) return; this.moveToColumn(i); this.dropFast = true; };
           btn.addEventListener('click', go); btn.addEventListener('touchend', go, { passive: false });
         });
         const campo = this.elems.campo; let touch = null; const getTouch = (e) => { if (!touch) return null; for (const t of e.changedTouches) if (t.identifier === touch.id) return t; return null; };
         if (campo) {
           campo.addEventListener('touchstart', (e) => { if (!e.changedTouches.length) return; const t = e.changedTouches[0]; touch = { id: t.identifier, startX: t.clientX, startY: t.clientY, lastX: t.clientX, lastY: t.clientY, moved:false }; }, { passive: true });
           campo.addEventListener('touchmove', (e) => { const t = touch ? getTouch(e) : null; if (!t || !this.bloqueActual) return; const dx = t.clientX - touch.lastX; if (Math.abs(dx) > 0) { this.posX += dx; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; touch.moved = true; } touch.lastX = t.clientX; touch.lastY = t.clientY; }, { passive: true });
-          campo.addEventListener('touchend', (e) => { const t = touch ? getTouch(e) : null; if (!t) return; const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX; if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) { this.dropFast = true; } else if (!touch.moved && this.elems.campo) { const rect = this.elems.campo.getBoundingClientRect(); const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1)); const col = Math.floor(relX / rect.width * 4); this.moveToColumn(col); this.acelerado = true; setTimeout(() => this.acelerado = false, 250); } touch = null; });
+          campo.addEventListener('touchend', (e) => { const t = touch ? getTouch(e) : null; if (!t || this.isPaused) return; const dy = t.clientY - touch.startY; const dx = t.clientX - touch.startX; if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) { this.dropFast = true; } else if (!touch.moved && this.elems.campo) { const rect = this.elems.campo.getBoundingClientRect(); const relX = Math.max(0, Math.min(t.clientX - rect.left, rect.width - 1)); const col = Math.floor(relX / rect.width * 4); this.moveToColumn(col); this.acelerado = true; setTimeout(() => this.acelerado = false, 250); } touch = null; });
         }
         const bar = document.getElementById('mobile-controls');
         if (bar) {
-          const step = 24; const applyMove = (delta) => { if (!this.bloqueActual) return; this.posX += delta; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; };
+          const step = 24; const applyMove = (delta) => { if (!this.bloqueActual || this.isPaused) return; this.posX += delta; const maxX = this.elems.campo.offsetWidth - this.bloqueW; this.posX = Math.max(0, Math.min(this.posX, maxX)); this.bloqueActual.style.transform = `translate3d(${this.posX}px,${this.posY}px,0)`; };
           bar.querySelector('[data-act="left"]').addEventListener('click', () => applyMove(-step));
           bar.querySelector('[data-act="right"]').addEventListener('click', () => applyMove(step));
           const down = bar.querySelector('[data-act="down"]'); const drop = bar.querySelector('[data-act="drop"]');
           const setAccel = (on) => this.acelerado = !!on;
           down.addEventListener('touchstart', () => setAccel(true), { passive: true }); down.addEventListener('touchend',   () => setAccel(false));
           down.addEventListener('mousedown',  () => setAccel(true)); down.addEventListener('mouseup',    () => setAccel(false));
-          drop.addEventListener('click', () => { this.dropFast = true; });
+          drop.addEventListener('click', () => { if (!this.isPaused) this.dropFast = true; });
         }
       }
     }

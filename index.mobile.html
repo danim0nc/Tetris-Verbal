@@ -94,6 +94,13 @@
       background: #fff;
       box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
     }
+    #btn-pause {
+      padding: .45rem .7rem;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      border-radius: 999px;
+      background: #fff;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+    }
 
     /* ======= Stage escalado ======= */
     #shell { position: relative; touch-action: none; }
@@ -212,6 +219,20 @@
       text-align: center;
       padding: 1rem;
     }
+    #pause-screen {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.55);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 880;
+      text-align: center;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+    }
     #level-screen span { font-size: 3rem; font-weight: 900; }
     #end-screen .box,
     #level-screen .box {
@@ -298,6 +319,7 @@
   <div id="hud" aria-hidden="true">
     <div class="chip">PUNTAJE: <span id="puntaje">000</span></div>
     <div class="chip">NIVEL: <span id="nivel">1</span></div>
+    <button id="btn-pause">Pausar</button>
     <button id="btn-main">Menú</button>
   </div>
 
@@ -346,6 +368,8 @@
     </div>
   </div>
 
+  <div id="pause-screen">PAUSA</div>
+
     <script type="module">
     import SpanishVerbs from 'https://cdn.skypack.dev/spanish-verbs@3.4.0';
     window.SpanishVerbs = SpanishVerbs;
@@ -374,6 +398,7 @@
         this.allIrregular = ["tener","ir","ser","hacer","decir","venir","estar","saber","querer","poder"];
         this.allRegular   = ["hablar","comer","vivir","estudiar","trabajar","caminar","cantar","amar","bailar","mirar"];
         this.pronombres   = ["yo","tú","él","nosotros","vosotros","ellos"];
+        this.isPaused = false;
         this.state = {
           config: {}, levelDefs: [], poolVerbos: [], poolIdx: 0,
           usedCount: 0, puntaje: 0, nivel: 1, fijos: [], velocidadY: 1
@@ -402,7 +427,9 @@
           modoTop: get('ventana-modo-top'), modoSpan: get('ventana-modo-top').querySelector('span'),
           levelScr: get('level-screen'), endScr: get('end-screen'), endSummary: get('end-summary'),
           btnRestart: get('btn-restart2'), btnMainMenu: get('btn-mainmenu'), btnMain: get('btn-main'),
-          exitConfirm: get('confirm-exit'), btnConfirmExit: get('btn-confirm-exit'), btnCancelExit: get('btn-cancel-exit')
+          btnPause: get('btn-pause'),
+          exitConfirm: get('confirm-exit'), btnConfirmExit: get('btn-confirm-exit'), btnCancelExit: get('btn-cancel-exit'),
+          pauseScreen: get('pause-screen')
         };
       }
       setText(node, txt) { if (node) node.textContent = txt; }
@@ -418,6 +445,7 @@
         this.elems.startBtn.addEventListener('click', () => this.handleStart());
         // Botón menú → confirmación de salida
         this.elems.btnMain.addEventListener('click', () => this.requestExitConfirm());
+        if (this.elems.btnPause) this.elems.btnPause.addEventListener('click', () => this.togglePause());
         if (this.elems.btnConfirmExit) this.elems.btnConfirmExit.addEventListener('click', () => this.exitConfirmChoice(true));
         if (this.elems.btnCancelExit)  this.elems.btnCancelExit.addEventListener('click', () => this.exitConfirmChoice(false));
         // Cambios en selects personalizados
@@ -425,7 +453,7 @@
         this.elems.selTiempo.addEventListener('change', () => this.updateSubjImpVisibility());
         // Tap en opciones → mover a columna y caída rápida
         Array.from(document.querySelectorAll('.opcion-conjugacion')).forEach((btn, i) => {
-          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloque) return; this.moveToColumn(i); this.dropFast = true; };
+          const go = (ev) => { ev && ev.preventDefault(); if (!this.bloque || this.isPaused) return; this.moveToColumn(i); this.dropFast = true; };
           btn.addEventListener('click', go);
           btn.addEventListener('touchend', go, { passive: false });
         });
@@ -445,6 +473,7 @@
         stage.addEventListener('touchmove', (e) => {
           const t = getTouch(e);
           if (!t || !this.bloque) return;
+          if (this.isPaused) return;
           const scale = window.__stageScale || 1;
           const dxStage = (t.clientX - touch.lastX) / scale;
           this.posX += dxStage;
@@ -456,7 +485,7 @@
         }, { passive: true });
         stage.addEventListener('touchend', (e) => {
           const t = getTouch(e);
-          if (!t) return;
+          if (!t || this.isPaused) return;
           const dx = t.clientX - touch.startX;
           const dy = t.clientY - touch.startY;
           if (Math.abs(dy) > 40 && Math.abs(dy) > Math.abs(dx)) {
@@ -486,7 +515,7 @@
       exitConfirmChoice(ok){
         if (this.elems.exitConfirm) this.elems.exitConfirm.style.display = 'none';
         if (ok) { this.returnToMenu(); }
-        else if (this._wasRunning && this.bloque) { this.anim = requestAnimationFrame(() => this.animar()); }
+        else if (this._wasRunning && this.bloque && !this.isPaused) { this.anim = requestAnimationFrame(() => this.animar()); }
       }
 
       updateCustomTiempoOptions() {
@@ -514,6 +543,7 @@
         else this.setupCustom();
         this.elems.start.style.display = 'none';
         this.elems.hud.setAttribute('aria-hidden', 'false');
+        this.setPaused(false);
         this.resetGame();
       }
       setupEasy() {
@@ -619,7 +649,7 @@
         this.posX = Math.floor((this.elems.stage.clientWidth - this.blockW)/2); this.posY= this.elems.header.clientHeight + 6;
         this.updateBlock(); this.anim = requestAnimationFrame(()=>this.animar());
       }
-      animar(){ if(!this.bloque) return; const limitY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4; // 4px colchón
+      animar(){ if(!this.bloque || this.isPaused) return; const limitY = this.elems.stage.clientHeight - this.elems.conj.clientHeight - this.blockH - 4; // 4px colchón
         // check colisiones con fijos (básico)
         for(const f of this.state.fijos){ const x=f.offsetLeft, y=f.offsetTop; if(this.posX < x+this.blockW && this.posX+this.blockW > x && this.posY+this.blockH >= y && this.posY < y){ this.land(y - this.blockH); return; } }
         const speed = this.dropFast ? this.state.velocidadY*12 : this.accel ? this.state.velocidadY*4 : this.state.velocidadY;
@@ -666,6 +696,23 @@
         if(this.state.usedCount % 10 === 0){ this.state.nivel++; this.setText(this.elems.nivel, String(this.state.nivel)); this.showLevel(this.state.nivel); return; }
         this.bloque=null; cancelAnimationFrame(this.anim); this.crearBloque();
       }
+
+      setPaused(state) {
+        this.isPaused = state;
+        if (this.elems.btnPause) this.elems.btnPause.textContent = state ? 'Reanudar' : 'Pausar';
+        if (this.elems.pauseScreen) this.elems.pauseScreen.style.display = state ? 'flex' : 'none';
+      }
+
+      togglePause() {
+        if (!this.elems.hud || this.elems.hud.getAttribute('aria-hidden') !== 'false') return;
+        this.setPaused(!this.isPaused);
+        if (this.isPaused) {
+          if (this.anim) cancelAnimationFrame(this.anim);
+          this.anim = null;
+        } else if (this.bloque) {
+          this.anim = requestAnimationFrame(()=>this.animar());
+        }
+      }
       showLevel(n){
         const s = this.elems.levelScr;
         const titleEl = s.querySelector('#level-title') || s.querySelector('h2') || s.querySelector('span');
@@ -695,6 +742,7 @@
       }
 
       resetGame(){
+        this.setPaused(false);
         if (this.levelTimer) { clearTimeout(this.levelTimer); this.levelTimer = null; }
         if (this.anim) { cancelAnimationFrame(this.anim); this.anim = null; }
         if (this.bloque) { this.bloque.remove(); this.bloque = null; }
@@ -713,6 +761,7 @@
         this.showLevel(1);
       }
       end(won){
+        this.setPaused(false);
         cancelAnimationFrame(this.anim);
         const sum=this.elems.endSummary;
         const total=this.state.puntaje;
@@ -734,6 +783,7 @@
         this.elems.stage.querySelectorAll('.bloque').forEach(b => b.remove());
         if (this.elems.exitConfirm) this.elems.exitConfirm.style.display='none';
         if (this.elems.endScr) this.elems.endScr.style.display='none';
+        this.setPaused(false);
         this.elems.start.style.display='flex';
         this.setText(this.elems.puntaje,'000'); this.setText(this.elems.nivel,'1');
         this.state.fijos.forEach(b=>b.remove()); this.state.fijos.length=0;
